@@ -1,14 +1,43 @@
+import { ConvexQueryClient } from '@convex-dev/react-query'
+import { notifyManager, QueryClient } from '@tanstack/react-query'
 import { createRouter } from '@tanstack/react-router'
-
-// Import the generated route tree
+import { setupRouterSsrQueryIntegration } from '@tanstack/react-router-ssr-query'
 import { routeTree } from './routeTree.gen'
 
-// Create a new router instance
-export const getRouter = () => {
+export function getRouter() {
+  if (typeof document !== 'undefined') {
+    notifyManager.setScheduler(window.requestAnimationFrame)
+  }
+
+  const convexUrl = import.meta.env.VITE_CONVEX_URL!
+  if (!convexUrl) {
+    throw new Error('VITE_CONVEX_URL is not set')
+  }
+  const convexQueryClient = new ConvexQueryClient(convexUrl, {
+    expectAuth: true,
+  })
+
+  const queryClient: QueryClient = new QueryClient({
+    defaultOptions: {
+      queries: {
+        queryKeyHashFn: convexQueryClient.hashFn(),
+        queryFn: convexQueryClient.queryFn(),
+      },
+    },
+  })
+  convexQueryClient.connect(queryClient)
   const router = createRouter({
     routeTree,
+    defaultPreload: 'intent',
+    context: { queryClient, convexQueryClient },
     scrollRestoration: true,
-    defaultPreloadStaleTime: 0,
+    defaultErrorComponent: (err) => <p>{err.error.stack}</p>,
+    defaultNotFoundComponent: () => <p>not found</p>,
+  })
+
+  setupRouterSsrQueryIntegration({
+    router,
+    queryClient,
   })
 
   return router
