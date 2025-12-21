@@ -13,6 +13,7 @@ import { Route as PostsRouteImport } from './routes/posts'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as PostsPostIdRouteImport } from './routes/posts/$postId'
 import { Route as DemoConvexRouteImport } from './routes/demo/convex'
+import { Route as DemoAuthRouteImport } from './routes/demo/auth'
 import { Route as DemoStartServerFuncsRouteImport } from './routes/demo/start.server-funcs'
 import { Route as DemoStartApiRequestRouteImport } from './routes/demo/start.api-request'
 import { Route as DemoApiNamesRouteImport } from './routes/demo/api.names'
@@ -40,6 +41,11 @@ const PostsPostIdRoute = PostsPostIdRouteImport.update({
 const DemoConvexRoute = DemoConvexRouteImport.update({
   id: '/demo/convex',
   path: '/demo/convex',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DemoAuthRoute = DemoAuthRouteImport.update({
+  id: '/demo/auth',
+  path: '/demo/auth',
   getParentRoute: () => rootRouteImport,
 } as any)
 const DemoStartServerFuncsRoute = DemoStartServerFuncsRouteImport.update({
@@ -86,6 +92,7 @@ const DemoStartSsrDataOnlyRoute = DemoStartSsrDataOnlyRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/posts': typeof PostsRouteWithChildren
+  '/demo/auth': typeof DemoAuthRoute
   '/demo/convex': typeof DemoConvexRoute
   '/posts/$postId': typeof PostsPostIdRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
@@ -100,6 +107,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/posts': typeof PostsRouteWithChildren
+  '/demo/auth': typeof DemoAuthRoute
   '/demo/convex': typeof DemoConvexRoute
   '/posts/$postId': typeof PostsPostIdRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
@@ -115,6 +123,7 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/posts': typeof PostsRouteWithChildren
+  '/demo/auth': typeof DemoAuthRoute
   '/demo/convex': typeof DemoConvexRoute
   '/posts/$postId': typeof PostsPostIdRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
@@ -131,6 +140,7 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/posts'
+    | '/demo/auth'
     | '/demo/convex'
     | '/posts/$postId'
     | '/api/auth/$'
@@ -145,6 +155,7 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/posts'
+    | '/demo/auth'
     | '/demo/convex'
     | '/posts/$postId'
     | '/api/auth/$'
@@ -159,6 +170,7 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/posts'
+    | '/demo/auth'
     | '/demo/convex'
     | '/posts/$postId'
     | '/api/auth/$'
@@ -174,6 +186,7 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   PostsRoute: typeof PostsRouteWithChildren
+  DemoAuthRoute: typeof DemoAuthRoute
   DemoConvexRoute: typeof DemoConvexRoute
   ApiAuthSplatRoute: typeof ApiAuthSplatRoute
   DemoApiNamesRoute: typeof DemoApiNamesRoute
@@ -213,6 +226,13 @@ declare module '@tanstack/react-router' {
       path: '/demo/convex'
       fullPath: '/demo/convex'
       preLoaderRoute: typeof DemoConvexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/demo/auth': {
+      id: '/demo/auth'
+      path: '/demo/auth'
+      fullPath: '/demo/auth'
+      preLoaderRoute: typeof DemoAuthRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/demo/start/server-funcs': {
@@ -287,6 +307,7 @@ const PostsRouteWithChildren = PostsRoute._addFileChildren(PostsRouteChildren)
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   PostsRoute: PostsRouteWithChildren,
+  DemoAuthRoute: DemoAuthRoute,
   DemoConvexRoute: DemoConvexRoute,
   ApiAuthSplatRoute: ApiAuthSplatRoute,
   DemoApiNamesRoute: DemoApiNamesRoute,

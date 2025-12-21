@@ -14,6 +14,7 @@ export function getRouter() {
     throw new Error('VITE_CONVEX_URL is not set')
   }
   const convexQueryClient = new ConvexQueryClient(convexUrl, {
+    verbose: true,
     expectAuth: true,
   })
 

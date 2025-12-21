@@ -4,6 +4,7 @@ import { convex } from '@convex-dev/better-auth/plugins'
 import authConfig from './auth.config'
 import { components } from './_generated/api'
 import { query } from './_generated/server'
+import { admin } from "better-auth/plugins"
 import type { GenericCtx } from '@convex-dev/better-auth'
 import type { DataModel } from './_generated/dataModel'
 
@@ -11,7 +12,10 @@ const siteUrl = process.env.SITE_URL!
 
 // The component client has methods needed for integrating Convex with Better Auth,
 // as well as helper methods for general use.
-export const authComponent = createClient<DataModel>(components.betterAuth)
+export const authComponent = createClient<DataModel>(components.betterAuth, {
+  // Debugging better auth x convex
+  verbose: true,
+})
 export const createAuthOptions = (ctx: GenericCtx<DataModel>) => {
   return {
     baseURL: siteUrl,
@@ -24,6 +28,8 @@ export const createAuthOptions = (ctx: GenericCtx<DataModel>) => {
     plugins: [
       // The Convex plugin is required for Convex compatibility
       convex({ authConfig }),
+      // Admin plugin for admin user functionality
+      admin(),
     ],
   } satisfies BetterAuthOptions;
 };
