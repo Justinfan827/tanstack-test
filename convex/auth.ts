@@ -18,6 +18,12 @@ export const authComponent = createClient<DataModel>(components.betterAuth, {
 })
 export const createAuthOptions = (ctx: GenericCtx<DataModel>) => {
   return {
+    user: {
+        // Allow user deletion
+        deleteUser: { 
+            enabled: true
+        } 
+    },
     baseURL: siteUrl,
     database: authComponent.adapter(ctx),
     // Configure simple, non-verified email/password to get started
@@ -34,6 +40,7 @@ export const createAuthOptions = (ctx: GenericCtx<DataModel>) => {
   } satisfies BetterAuthOptions;
 };
 
+// access to better auth apis from convex functions
 export const createAuth = (ctx: GenericCtx<DataModel>) => {
   return betterAuth(createAuthOptions(ctx))
 }

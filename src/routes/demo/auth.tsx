@@ -2,6 +2,7 @@ import { useForm } from '@tanstack/react-form'
 import { createFileRoute } from '@tanstack/react-router'
 
 import { Authenticated, AuthLoading, Unauthenticated } from 'convex/react'
+import { toast } from 'sonner'
 import { z } from 'zod'
 import { Button } from '@/components/ui/button'
 import {
@@ -14,6 +15,7 @@ import {
   FieldSet,
 } from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
+import { authClient } from '@/lib/auth-client'
 
 export const Route = createFileRoute('/demo/auth')({
   component: RouteComponent,
@@ -24,15 +26,38 @@ const loginFormSchema = z.object({
   password: z.string().min(8),
 })
 
-// tanstack form using shadcn components
 function RouteComponent() {
   const form = useForm({
     validators: {
       onSubmit: loginFormSchema,
     },
+    onSubmit: async ({ value }) => {
+      const { error } = await authClient.signIn.email({
+        email: value.email,
+        password: value.password,
+      })
+      if (error) {
+        toast('Failed to sign in', {
+          description: (
+            <pre>
+              {error.code} {error.statusText}
+            </pre>
+          ),
+        })
+        return
+      }
+      toast('You submitted the following values:', {
+        description: (
+          <pre className="bg-code text-code-foreground mt-2 w-[320px] overflow-x-auto rounded-md p-4">
+            <code>{JSON.stringify(value, null, 2)}</code>
+          </pre>
+        ),
+        position: 'bottom-right',
+      })
+    },
     defaultValues: {
-      email: '',
-      password: '',
+      email: 'justinfan827@gmail.com',
+      password: 'justinfan827@gmail.com',
     },
   })
   return (
