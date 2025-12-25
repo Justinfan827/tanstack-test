@@ -30,19 +30,19 @@ users: defineTable({
   authId: v.string(),
   name: v.string(),
   trustMode: v.union(v.literal("high"), v.literal("low")), // user setting
-}).index("by_auth_id", ["authId"])
+}).index("by_auth_id", ["authId"]);
 
 exerciseLibrary: defineTable({
   name: v.string(),
   userId: v.optional(v.id("users")), // null = global default
 })
   .index("by_user", ["userId"])
-  .searchIndex("search_name", { searchField: "name" })
+  .searchIndex("search_name", { searchField: "name" });
 
 programs: defineTable({
   name: v.string(),
   userId: v.id("users"),
-}).index("by_user", ["userId"])
+}).index("by_user", ["userId"]);
 
 days: defineTable({
   programId: v.id("programs"),
@@ -50,7 +50,7 @@ days: defineTable({
   order: v.number(), // integer, renumber on reorder
 })
   .index("by_program", ["programId"])
-  .index("by_program_and_order", ["programId", "order"])
+  .index("by_program_and_order", ["programId", "order"]);
 
 programRows: defineTable(
   v.union(
@@ -72,15 +72,16 @@ programRows: defineTable(
       groupId: v.string(),
       name: v.string(),
       sets: v.optional(v.string()),
-    }),
+    })
   )
 )
   .index("by_day", ["dayId"])
   .index("by_day_and_order", ["dayId", "order"])
-  .index("by_group", ["groupId"])
+  .index("by_group", ["groupId"]);
 ```
 
 ### Example Data
+
 ```
 order | kind     | groupId | name/exercise
 ------|----------|---------|---------------
@@ -92,7 +93,9 @@ order | kind     | groupId | name/exercise
 ```
 
 ### Pending Changes (Low Trust Mode) - TODO
+
 Separate tables for different change types:
+
 - pendingExerciseFieldUpdates
 - pendingExerciseAdds
 - pendingExerciseDeletes
@@ -103,6 +106,7 @@ Separate tables for different change types:
 Single tool set - trust mode controls execution semantics. Tools use `createTool` from `@convex-dev/agent` and call mutations via `ctx.runMutation`.
 
 ### Row-level Tools
+
 ```typescript
 addExercise(dayId, libraryExerciseId, weight, reps, sets, notes, groupId?)
   → appends to end of day, returns rowId
@@ -132,6 +136,7 @@ ungroupExercise(exerciseRowId)
 ```
 
 ### Day-level Tools
+
 ```typescript
 addDay(programId, dayLabel, rows?)
   → appends day to program
@@ -155,6 +160,7 @@ replaceDay(dayId, rows[])
 ```
 
 ### Program-level Tools
+
 ```typescript
 createProgram(name)
   → creates program for authenticated user
@@ -177,10 +183,12 @@ replaceProgram(programId, days[])
 Trust mode is a **user setting** stored on the users table.
 
 **High Trust Mode:**
+
 - Tool calls mutate program directly
 - User sees changes immediately
 
 **Low Trust Mode:**
+
 - Tool calls create entries in pendingChanges (scoped to program)
 - UI shows review panel for pending changes
 - User accepts/denies before changes apply
@@ -189,9 +197,11 @@ Trust mode is a **user setting** stored on the users table.
 ## Design Decisions
 
 ### Normalized Tables
+
 **Decision:** Fully normalized schema - programs, days, and programRows as separate tables.
 
 **Rationale:**
+
 - **Mutation simplicity**: `db.patch(rowId, {weight: "135"})` vs array splice logic
 - **Concurrent editing**: Two edits to different rows don't conflict
 - **Stable references**: Convex `_id` provides stable row identity for React keys and tool calls
@@ -200,17 +210,21 @@ Trust mode is a **user setting** stored on the users table.
 **Trade-off:** Extra queries to load full program, but cleaner mutation model.
 
 ### Discriminated Union for Row Types
+
 **Decision:** `programRows` table uses discriminated union for exercise vs header rows.
 
 **Rationale:**
+
 - **Single table**: One query for all rows in a day, ordered correctly
 - **Type safety**: Each row kind has its required fields
 - **Grid rendering**: Flat array maps directly to grid rows
 
 ### Integer Ordering with Renumber
+
 **Decision:** Use integer `order` field, renumber all on reorder.
 
 **Rationale:**
+
 - **Simplicity**: No fractional precision issues or compaction needed
 - **Scale**: 10-15 exercises per day → O(n) renumber is ~15 writes max
 - **Predictable**: Easy to debug and reason about
@@ -218,16 +232,20 @@ Trust mode is a **user setting** stored on the users table.
 **Alternative rejected:** Fractional ordering (over-engineered for small N).
 
 ### Trust Mode as User Setting
+
 **Decision:** Trust mode stored on users table, not per-chat.
 
 **Rationale:**
+
 - **Simplicity**: User preference applies globally
 - **No chat sessions table needed**: Agent component handles chat storage
 
 ### Exercise Library with FK Reference
+
 **Decision:** Separate `exerciseLibrary` table, exercises reference via `libraryExerciseId`.
 
 **Rationale:**
+
 - **Dropdown support**: Query library for select cell options
 - **Global + user exercises**: `userId: null` for defaults, set for user-specific
 - **Future extensibility**: Add muscle groups, equipment metadata later
@@ -243,6 +261,7 @@ Trust mode is a **user setting** stored on the users table.
 ## Implementation Details
 
 ### File Organization (✅ Implemented)
+
 ```
 convex/
   schema.ts              # ✅ Convex schema
@@ -275,28 +294,34 @@ convex/
 ### Implementation Decisions Made
 
 **1. Split updateRow into updateExercise and updateHeader**
+
 - Cleaner type validation for discriminated union
 - Agent tools can still provide unified `updateRow` experience by checking row kind first
 
 **2. Auth pattern uses better-auth `_id` field**
+
 - `authComponent.getAuthUser(ctx)` returns better-auth user with `_id`
 - Look up our users table via `authId` index to get internal user ID
 - All ownership verification traces: row → day → program → userId
 
 **3. Bulk validators defined in helpers/validators.ts**
+
 - `rowInput` - union of exercise and header row shapes (without dayId/order)
 - `dayInput` - day label + array of rowInput
 - Used by replaceDay and replaceProgram for bulk operations
 
 **4. Tools use explicit return type annotations**
+
 - Required to avoid TypeScript circular inference issues with createTool
 - Handler functions annotated with `Promise<{ success: boolean; ... }>`
 
 **5. ID casting in tools**
+
 - Zod schemas use `z.string()` for IDs (agent sends strings)
 - Handler casts to `Id<"tableName">` when calling mutations
 
 **6. Agent authentication via thread context (not session auth)**
+
 - Agent tools run in action context where `authComponent.getAuthUser(ctx)` returns null
 - Solution: Pass userId when creating thread, access via `ctx.userId` in tools
 - Pattern:
@@ -310,14 +335,15 @@ convex/
 
 ### Agent Tools Summary (25 total)
 
-| Category | Tools |
-|----------|-------|
-| Row-level | addExercise, addHeader, updateExercise, updateHeader, deleteRow, deleteGroup, moveRow, groupExercise, ungroupExercise |
-| Day-level | addDay, updateDay, deleteDay, moveDay, duplicateDay, replaceDay |
-| Program-level | createProgram, updateProgram, deleteProgram, duplicateProgram, replaceProgram |
-| Queries | getProgram, listPrograms, searchExercises, listExercises |
+| Category      | Tools                                                                                                                 |
+| ------------- | --------------------------------------------------------------------------------------------------------------------- |
+| Row-level     | addExercise, addHeader, updateExercise, updateHeader, deleteRow, deleteGroup, moveRow, groupExercise, ungroupExercise |
+| Day-level     | addDay, updateDay, deleteDay, moveDay, duplicateDay, replaceDay                                                       |
+| Program-level | createProgram, updateProgram, deleteProgram, duplicateProgram, replaceProgram                                         |
+| Queries       | getProgram, listPrograms, searchExercises, listExercises                                                              |
 
 ### Agent Configuration
+
 ```typescript
 // convex/agent.ts
 export const workoutAgent = new Agent(components.agent, {
@@ -332,6 +358,7 @@ export const workoutAgent = new Agent(components.agent, {
 ### Grid Implementation (Phase 3-4)
 
 **Component Structure:**
+
 ```
 ProgramsSection
 ├── ProgramsSidebar (program list + create)
@@ -341,6 +368,7 @@ ProgramsSection
 ```
 
 **Key Files:**
+
 - `src/routes/demo/auth.tsx` - ProgramGrid, DayGrid, ProgramsSidebar components
 - `convex/programRows.ts` - batchUpdateRows mutation
 
@@ -354,12 +382,14 @@ ProgramsSection
 | Notes | long-text | Yes |
 
 **Batch Updates:**
+
 - `batchUpdateRows` mutation accepts array of `{ rowId, fields }` updates
 - Groups updates by row on client (one `ctx.db.patch` per row, not per field)
 - Convex queues all db changes and executes in single transaction
 - See: https://docs.convex.dev/database/writing-data#bulk-inserts-or-updates
 
 **Optimistic Updates:**
+
 - Uses Convex `.withOptimisticUpdate()` for instant UI feedback
 - See: https://docs.convex.dev/client/react/optimistic-updates
 
@@ -368,31 +398,32 @@ ProgramsSection
 const batchUpdateRows = useMutation(
   api.programRows.batchUpdateRows
 ).withOptimisticUpdate((localStore, args) => {
-  const program = localStore.getQuery(api.programs.getProgram, { programId })
-  if (!program) return
+  const program = localStore.getQuery(api.programs.getProgram, { programId });
+  if (!program) return;
 
-  const updatesMap = new Map(args.updates.map(u => [u.rowId, u.fields]))
+  const updatesMap = new Map(args.updates.map((u) => [u.rowId, u.fields]));
 
   const newProgram = {
     ...program,
-    days: program.days.map(day => {
-      if (day._id !== dayId) return day
+    days: program.days.map((day) => {
+      if (day._id !== dayId) return day;
       return {
         ...day,
-        rows: day.rows.map(row => {
-          const update = updatesMap.get(row._id)
-          if (!update || row.kind !== 'exercise') return row
-          return { ...row, ...update }
+        rows: day.rows.map((row) => {
+          const update = updatesMap.get(row._id);
+          if (!update || row.kind !== "exercise") return row;
+          return { ...row, ...update };
         }),
-      }
+      };
     }),
-  }
+  };
 
-  localStore.setQuery(api.programs.getProgram, { programId }, newProgram)
-})
+  localStore.setQuery(api.programs.getProgram, { programId }, newProgram);
+});
 ```
 
 **Data Flow:**
+
 ```
 User edits cell
     ↓
@@ -410,26 +441,29 @@ Server responds, optimistic update rolled back, real query applied
 ```
 
 **Why Optimistic Updates over Client-Side State:**
+
 1. Agent always sees latest committed data (no "unsaved changes" problem)
 2. No merge conflicts between user edits and agent edits
 3. Automatic rollback if mutation fails
 4. No "Save" button needed
 
 ### Queries Implemented
+
 ```typescript
 // programs.ts
-getProgram(programId)           // ✅ returns program + days + rows (denormalized for UI)
-listUserPrograms()              // ✅ returns user's programs with dayCount
+getProgram(programId); // ✅ returns program + days + rows (denormalized for UI)
+listUserPrograms(); // ✅ returns user's programs with dayCount
 
 // exerciseLibrary.ts
-searchExercises(query)          // ✅ full-text search, returns global + user exercises
-listExercises()                 // ✅ all exercises for user (global + own)
-getExercise(exerciseId)         // ✅ single exercise lookup
+searchExercises(query); // ✅ full-text search, returns global + user exercises
+listExercises(); // ✅ all exercises for user (global + own)
+getExercise(exerciseId); // ✅ single exercise lookup
 ```
 
 ## Implementation Plan
 
 ### Phase 1: Data Layer & Mutations ✅
+
 - [x] Define Convex schema for program structure
 - [x] Create helper functions (auth, ordering, validators)
 - [x] Write programRows mutations (addExercise, addHeader, updateExercise, updateHeader, deleteRow, deleteGroup, moveRow, groupExercise, ungroupExercise)
@@ -439,27 +473,32 @@ getExercise(exerciseId)         // ✅ single exercise lookup
 - [ ] Seed exercise library with global defaults (assumed pre-seeded)
 
 ### Phase 2: Agent Tools ✅
+
 - [x] Define tools wrapping each mutation (25 tools)
 - [x] Register tools with workoutAgent
 - [x] Implement agent auth pattern (internal mutations + thread userId)
 - [ ] Test tool execution end-to-end
 
 ### Phase 3: UI Components ✅
+
 - [x] Add debug UI for testing program CRUD (src/routes/demo/auth.tsx - ProgramsDebug component)
 - [x] Build grid wrapper component around Dice UI for single day (DayGrid component)
 - [x] Create scrollable day list layout (ProgramGrid component with stacked DayGrid components)
 - [x] Implement day navigation (all days visible, scrollable)
 
 ### Phase 4: Manual Editing ✅
+
 - [x] Wire grid interactions to mutations (batchUpdateRows mutation)
 - [x] Handle optimistic updates (withOptimisticUpdate on batchUpdateRows)
 - [x] Test reactivity/re-rendering
 
 ### Phase 5: Agent Integration
+
 - [ ] Build chat panel component
 - [ ] Implement context passing (current program state)
 
 ### Phase 6: Trust Mode & Pending Changes (TODO - defer)
+
 - [ ] Create pendingChanges tables
 - [ ] Build review panel for pending changes
 - [ ] Implement trust mode toggle (high/low)
@@ -467,8 +506,8 @@ getExercise(exerciseId)         // ✅ single exercise lookup
 - [ ] Add accept/deny flow for pending changes
 
 ## Future Features
+
 - Preferred weight unit (lbs or kg)
 - Supersets (group exercises together)
 - Version history / undo
 - Concurrent editing support
-
