@@ -12,7 +12,7 @@ import {
   useMutation,
   useQuery,
 } from 'convex/react'
-import { Loader2, MessageSquarePlus, Send } from 'lucide-react'
+import { Loader2, MessageSquarePlus, Plus, Send } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import { toast } from 'sonner'
 import { Streamdown } from 'streamdown'
@@ -32,6 +32,7 @@ import {
 import { Input } from '@/components/ui/input'
 import { authClient } from '@/lib/auth-client'
 import { api } from '../../../convex/_generated/api'
+import { Id } from '../../../convex/_generated/dataModel'
 
 export const Route = createFileRoute('/demo/auth')({
   component: RouteComponent,
@@ -164,31 +165,71 @@ const AuthenticatedPage = () => {
 
   return (
     <Authenticated>
-      <div className="flex rounded-lg border">
-        {/* Sidebar panel */}
-        <div className="w-[25%] flex flex-col p-4 border-r">
-          <ThreadSelector threadId={threadId} setThreadId={setThreadId} />
-          <div className="my-4 border-t" />
-          <ProgramsDebug />
-          <div className="mt-auto pt-4 border-t">
-            <p className="text-sm text-muted-foreground mb-2">
-              Logged in as: {user?.name || ''}
-            </p>
-            <SignOutButton>Sign Out</SignOutButton>
+      <div className="flex flex-col gap-4">
+        {/* Chat Section */}
+        <div className="flex rounded-lg border">
+          {/* Sidebar panel */}
+          <div className="w-[25%] flex flex-col p-4 border-r">
+            <ThreadSelector threadId={threadId} setThreadId={setThreadId} />
+            <div className="mt-auto pt-4 border-t">
+              <p className="text-sm text-muted-foreground mb-2">
+                Logged in as: {user?.name || ''}
+              </p>
+              <SignOutButton>Sign Out</SignOutButton>
+            </div>
+          </div>
+
+          {/* Chat panel */}
+          <div className="w-[75%]">
+            <ChatPanel threadId={threadId} setThreadId={setThreadId} />
           </div>
         </div>
 
-        {/* Chat panel */}
-        <div className="w-[75%]">
-          <ChatPanel threadId={threadId} setThreadId={setThreadId} />
-        </div>
+        {/* Programs Section */}
+        <ProgramsSection />
       </div>
     </Authenticated>
   )
 }
 
-function ProgramsDebug() {
+function ProgramsSection() {
+  const [selectedProgramId, setSelectedProgramId] = useState<Id<'programs'> | null>(null)
+
+  return (
+    <div className="flex rounded-lg border">
+      {/* Programs Sidebar */}
+      <div className="w-[25%] flex flex-col p-4 border-r">
+        <ProgramsSidebar
+          selectedProgramId={selectedProgramId}
+          setSelectedProgramId={setSelectedProgramId}
+        />
+      </div>
+
+      {/* Grid Area */}
+      <div className="w-[75%] flex flex-col p-4">
+        {selectedProgramId ? (
+          <div className="text-center text-muted-foreground mt-8">
+            Grid UI coming soon for program: {selectedProgramId}
+          </div>
+        ) : (
+          <div className="text-center text-muted-foreground mt-8">
+            Select a program to view its grid
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
+
+function ProgramsSidebar({
+  selectedProgramId,
+  setSelectedProgramId,
+}: {
+  selectedProgramId: Id<'programs'> | null
+  setSelectedProgramId: (id: Id<'programs'> | null) => void
+}) {
   const [programName, setProgramName] = useState('')
+  const inputRef = useRef<HTMLInputElement>(null)
   const programs = useQuery(api.programs.listUserPrograms)
   const createProgram = useMutation(api.programs.createProgram)
 
@@ -201,6 +242,7 @@ function ProgramsDebug() {
       const programId = await createProgram({ name: programName })
       toast.success(`Created program: ${programId}`)
       setProgramName('')
+      setSelectedProgramId(programId)
     } catch (error) {
       toast.error(`Failed to create program: ${error}`)
       console.error('Failed to create program:', error)
@@ -208,39 +250,63 @@ function ProgramsDebug() {
   }
 
   return (
-    <div className="border rounded-lg p-4 mb-4 bg-muted/20">
-      <h2 className="text-lg font-semibold mb-3">Programs Debug</h2>
+    <div className="flex flex-col h-full">
+      <div className="flex items-center justify-between mb-3">
+        <h2 className="text-sm font-semibold">Programs</h2>
+        <Button
+          type="button"
+          size="icon"
+          variant="ghost"
+          onClick={() => inputRef.current?.focus()}
+          title="New program"
+          className="h-7 w-7"
+        >
+          <Plus size={16} />
+        </Button>
+      </div>
 
       {/* Create Program */}
       <div className="flex gap-2 mb-4">
         <Input
+          ref={inputRef}
           placeholder="Program name"
           value={programName}
           onChange={(e) => setProgramName(e.target.value)}
           onKeyDown={(e) => e.key === 'Enter' && handleCreate()}
         />
-        <Button onClick={handleCreate}>Create Program</Button>
+        <Button onClick={handleCreate} size="sm">
+          Create
+        </Button>
       </div>
 
       {/* List Programs */}
-      <div>
-        <h3 className="text-sm font-medium mb-2">Your Programs ({programs?.length ?? 0})</h3>
-        {programs === undefined ? (
-          <p className="text-muted-foreground text-sm">Loading...</p>
-        ) : programs.length === 0 ? (
-          <p className="text-muted-foreground text-sm">No programs yet</p>
-        ) : (
-          <ul className="space-y-1">
-            {programs.map((program) => (
-              <li key={program._id} className="text-sm p-2 bg-background rounded border">
-                <span className="font-medium">{program.name}</span>
-                <span className="text-muted-foreground ml-2">({program.dayCount} days)</span>
-                <span className="text-muted-foreground text-xs ml-2 font-mono">{program._id}</span>
-              </li>
-            ))}
-          </ul>
-        )}
-      </div>
+      <ScrollArea className="flex-1">
+        <div className="space-y-1 pr-2">
+          {programs === undefined ? (
+            <p className="text-muted-foreground text-sm">Loading...</p>
+          ) : programs.length === 0 ? (
+            <p className="text-muted-foreground text-sm">No programs yet</p>
+          ) : (
+            programs.map((program) => (
+              <button
+                type="button"
+                key={program._id}
+                onClick={() => setSelectedProgramId(program._id)}
+                className={`w-full text-left text-sm px-2 py-1.5 rounded-md transition-colors truncate ${
+                  selectedProgramId === program._id
+                    ? 'bg-primary text-primary-foreground'
+                    : 'hover:bg-muted'
+                }`}
+              >
+                <div className="font-medium truncate">{program.name}</div>
+                <div className="text-xs opacity-80">
+                  {program.dayCount} {program.dayCount === 1 ? 'day' : 'days'}
+                </div>
+              </button>
+            ))
+          )}
+        </div>
+      </ScrollArea>
     </div>
   )
 }
