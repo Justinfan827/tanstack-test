@@ -10,13 +10,28 @@ import { v } from "convex/values";
 
 import { components, internal } from "./_generated/api";
 import { internalAction, mutation, query } from "./_generated/server";
-import { agent } from "./agent";
+import { workoutAgent } from "./agent";
+import { getCurrentUserId } from "./helpers/auth";
 
 export const createNewThread = mutation({
   args: {},
   handler: async (ctx) => {
-    const threadId = await createThread(ctx, components.agent, {});
+    // Get authenticated user and pass to thread so agent tools can access it
+    const userId = await getCurrentUserId(ctx);
+    const threadId = await createThread(ctx, components.agent, { userId });
     return threadId;
+  },
+});
+
+export const listUserThreads = query({
+  args: {},
+  handler: async (ctx) => {
+    const userId = await getCurrentUserId(ctx);
+    const result = await ctx.runQuery(
+      components.agent.threads.listThreadsByUserId,
+      { userId, paginationOpts: { numItems: 50, cursor: null } }
+    );
+    return result.page;
   },
 });
 
@@ -57,6 +72,6 @@ export const generateResponseAsync = internalAction({
     promptMessageId: v.string(),
   },
   handler: async (ctx, { threadId, promptMessageId }) => {
-    await agent.streamText(ctx, { threadId }, { promptMessageId }, { saveStreamDeltas: true });
+    await workoutAgent.streamText(ctx, { threadId }, { promptMessageId }, { saveStreamDeltas: true });
   },
 });

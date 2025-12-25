@@ -41,6 +41,7 @@
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
     "react-hook-form": "^7.69.0",
+    "react-resizable-panels": "^4.0.15",
     "shadcn": "^3.6.2",
     "sonner": "^2.0.7",
     "streamdown": "^1.6.10",

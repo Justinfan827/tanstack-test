@@ -12,9 +12,16 @@ import type * as admin from "../admin.js";
 import type * as agent from "../agent.js";
 import type * as auth from "../auth.js";
 import type * as chat from "../chat.js";
+import type * as days from "../days.js";
+import type * as exerciseLibrary from "../exerciseLibrary.js";
+import type * as helpers_auth from "../helpers/auth.js";
+import type * as helpers_ordering from "../helpers/ordering.js";
+import type * as helpers_validators from "../helpers/validators.js";
 import type * as http from "../http.js";
 import type * as playground from "../playground.js";
-import type * as todos from "../todos.js";
+import type * as programRows from "../programRows.js";
+import type * as programs from "../programs.js";
+import type * as tools from "../tools.js";
 import type * as users from "../users.js";
 
 import type {
@@ -28,9 +35,16 @@ declare const fullApi: ApiFromModules<{
   agent: typeof agent;
   auth: typeof auth;
   chat: typeof chat;
+  days: typeof days;
+  exerciseLibrary: typeof exerciseLibrary;
+  "helpers/auth": typeof helpers_auth;
+  "helpers/ordering": typeof helpers_ordering;
+  "helpers/validators": typeof helpers_validators;
   http: typeof http;
   playground: typeof playground;
-  todos: typeof todos;
+  programRows: typeof programRows;
+  programs: typeof programs;
+  tools: typeof tools;
   users: typeof users;
 }>;
 

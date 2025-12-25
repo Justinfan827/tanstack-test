@@ -100,37 +100,76 @@ Separate tables for different change types:
 
 ## Agent Tool Interface
 
-Single tool set - trust mode controls execution semantics.
+Single tool set - trust mode controls execution semantics. Tools use `createTool` from `@convex-dev/agent` and call mutations via `ctx.runMutation`.
 
 ### Row-level Tools
-```
+```typescript
 addExercise(dayId, libraryExerciseId, weight, reps, sets, notes, groupId?)
+  → appends to end of day, returns rowId
+
 addHeader(dayId, name, sets?)
-updateRow(rowId, field, value)
+  → appends header row, generates unique groupId, returns rowId
+
+updateRow(rowId, updates: Partial<ExerciseFields | HeaderFields>)
+  → patches row fields (whole row edit in 1 call)
+  → validates fields match row kind
+
 deleteRow(rowId)
-deleteGroup(headerRowId)      // deletes header + all grouped exercises
-moveRow(rowId, newOrder)
+  → deletes single row, renumbers remaining
+
+deleteGroup(headerRowId)
+  → deletes header + all exercises with matching groupId
+
+moveRow(rowId, fromOrder, toOrder)
+  → validates fromOrder matches current (detects stale calls)
+  → renumbers affected rows
+
 groupExercise(exerciseRowId, groupId)
+  → sets groupId on exercise row
+
 ungroupExercise(exerciseRowId)
+  → clears groupId on exercise row
 ```
 
 ### Day-level Tools
-```
+```typescript
 addDay(programId, dayLabel, rows?)
+  → appends day to program
+  → optionally bulk-inserts rows
+
 updateDay(dayId, dayLabel)
-deleteDay(dayId)              // cascades to all rows
-moveDay(dayId, newOrder)
+  → patches day label
+
+deleteDay(dayId)
+  → cascades: deletes all programRows for day, then day
+
+moveDay(dayId, fromOrder, toOrder)
+  → validates fromOrder, renumbers days
+
 duplicateDay(dayId)
-replaceDay(dayId, rows[])     // bulk replace for AI rewrites
+  → copies day + all rows to same program (appended)
+
+replaceDay(dayId, rows[])
+  → bulk replace: deletes existing rows, inserts new
+  → for AI rewrites
 ```
 
 ### Program-level Tools
-```
+```typescript
 createProgram(name)
+  → creates program for authenticated user
+
 updateProgram(programId, name)
-deleteProgram(programId)      // cascades to days and rows
+  → patches program name
+
+deleteProgram(programId)
+  → cascades: deletes all days + rows, then program
+
 duplicateProgram(programId)
+  → copies program + days + rows for same user
+
 replaceProgram(programId, days[])
+  → bulk replace: deletes existing days/rows, inserts new
 ```
 
 ## Execution Model
@@ -201,38 +240,145 @@ Trust mode is a **user setting** stored on the users table.
 - Convex auto-syncs back to client (no manual refetch needed)
 - Data-grid virtualization minimizes re-render overhead
 
+## Implementation Details
+
+### File Organization (✅ Implemented)
+```
+convex/
+  schema.ts              # ✅ Convex schema
+  auth.ts                # ✅ existing better-auth setup
+  chat.ts                # ✅ createNewThread (passes userId), sendMessage, listMessages
+
+  # Mutations (public - used by UI)
+  programs.ts            # ✅ createProgram, updateProgram, deleteProgram, duplicateProgram, replaceProgram + queries
+  days.ts                # ✅ addDay, updateDay, deleteDay, moveDay, duplicateDay, replaceDay
+  programRows.ts         # ✅ addExercise, addHeader, updateExercise, updateHeader, deleteRow, deleteGroup, moveRow, groupExercise, ungroupExercise
+  exerciseLibrary.ts     # ✅ listExercises, searchExercises, addExercise, deleteExercise, getExercise
+
+  # Internal mutations (agent-only - accept userId as parameter)
+  programs.ts            # ✅ internalCreateProgram, internalUpdateProgram, internalDeleteProgram, internalDuplicateProgram, internalReplaceProgram, internalGetProgram, internalListUserPrograms
+  days.ts                # ✅ internalAddDay, internalUpdateDay, internalDeleteDay, internalMoveDay, internalDuplicateDay, internalReplaceDay
+  programRows.ts         # ✅ internalAddExercise, internalAddHeader, internalUpdateExercise, internalUpdateHeader, internalDeleteRow, internalDeleteGroup, internalMoveRow, internalGroupExercise, internalUngroupExercise
+  exerciseLibrary.ts     # ✅ internalListExercises, internalSearchExercises, internalAddExercise, internalDeleteExercise
+
+  # Agent
+  agent.ts               # ✅ workoutAgent with all tools registered
+  tools.ts               # ✅ 25 createTool wrappers using internal mutations with ctx.userId
+
+  # Helpers (internal)
+  helpers/
+    auth.ts              # ✅ getCurrentUserId, verifyProgramOwnership, verifyDayOwnership, verifyRowOwnership
+    ordering.ts          # ✅ getNextRowOrder, renumberRows, getNextDayOrder, renumberDays, deleteRowsForDay, deleteDaysForProgram
+    validators.ts        # ✅ exerciseRowInput, headerRowInput, rowInput, dayInput, exerciseFieldUpdates, headerFieldUpdates
+```
+
+### Implementation Decisions Made
+
+**1. Split updateRow into updateExercise and updateHeader**
+- Cleaner type validation for discriminated union
+- Agent tools can still provide unified `updateRow` experience by checking row kind first
+
+**2. Auth pattern uses better-auth `_id` field**
+- `authComponent.getAuthUser(ctx)` returns better-auth user with `_id`
+- Look up our users table via `authId` index to get internal user ID
+- All ownership verification traces: row → day → program → userId
+
+**3. Bulk validators defined in helpers/validators.ts**
+- `rowInput` - union of exercise and header row shapes (without dayId/order)
+- `dayInput` - day label + array of rowInput
+- Used by replaceDay and replaceProgram for bulk operations
+
+**4. Tools use explicit return type annotations**
+- Required to avoid TypeScript circular inference issues with createTool
+- Handler functions annotated with `Promise<{ success: boolean; ... }>`
+
+**5. ID casting in tools**
+- Zod schemas use `z.string()` for IDs (agent sends strings)
+- Handler casts to `Id<"tableName">` when calling mutations
+
+**6. Agent authentication via thread context (not session auth)**
+- Agent tools run in action context where `authComponent.getAuthUser(ctx)` returns null
+- Solution: Pass userId when creating thread, access via `ctx.userId` in tools
+- Pattern:
+  - `createNewThread` in chat.ts calls `getCurrentUserId(ctx)` and passes to `createThread(ctx, components.agent, { userId })`
+  - All tools check `if (!ctx.userId) throw new Error("User not authenticated")`
+  - Tools call internal mutations with `userId: ctx.userId as Id<"users">`
+  - Internal mutations accept `userId` as first arg and call `verify*Ownership(ctx, id, args.userId)`
+- Why two sets of mutations:
+  - Public mutations: Used by UI, get userId from auth session via `getCurrentUserId(ctx)`
+  - Internal mutations: Used by agent tools, accept userId as parameter (no auth session in action context)
+
+### Agent Tools Summary (25 total)
+
+| Category | Tools |
+|----------|-------|
+| Row-level | addExercise, addHeader, updateExercise, updateHeader, deleteRow, deleteGroup, moveRow, groupExercise, ungroupExercise |
+| Day-level | addDay, updateDay, deleteDay, moveDay, duplicateDay, replaceDay |
+| Program-level | createProgram, updateProgram, deleteProgram, duplicateProgram, replaceProgram |
+| Queries | getProgram, listPrograms, searchExercises, listExercises |
+
+### Agent Configuration
+```typescript
+// convex/agent.ts
+export const workoutAgent = new Agent(components.agent, {
+  name: "Workout Program Assistant",
+  languageModel: openai.chat("gpt-4o"),
+  instructions: `You are a workout program assistant...`,
+  tools: workoutProgramTools,
+  maxSteps: 10,
+});
+```
+
+### Queries Implemented
+```typescript
+// programs.ts
+getProgram(programId)           // ✅ returns program + days + rows (denormalized for UI)
+listUserPrograms()              // ✅ returns user's programs with dayCount
+
+// exerciseLibrary.ts
+searchExercises(query)          // ✅ full-text search, returns global + user exercises
+listExercises()                 // ✅ all exercises for user (global + own)
+getExercise(exerciseId)         // ✅ single exercise lookup
+```
+
 ## Implementation Plan
 
-### Phase 1: Data Layer & Schema
-- [ ] Define Convex schema for program structure
-- [ ] Create pendingChanges table for low trust mode
-- [ ] Write Convex mutations for each tool (granular, day-level, program-level)
+### Phase 1: Data Layer & Mutations ✅
+- [x] Define Convex schema for program structure
+- [x] Create helper functions (auth, ordering, validators)
+- [x] Write programRows mutations (addExercise, addHeader, updateExercise, updateHeader, deleteRow, deleteGroup, moveRow, groupExercise, ungroupExercise)
+- [x] Write days mutations (addDay, updateDay, deleteDay, moveDay, duplicateDay, replaceDay)
+- [x] Write programs mutations (create, update, delete, duplicate, replace) + queries
+- [x] Write exerciseLibrary queries/mutations
+- [ ] Seed exercise library with global defaults (assumed pre-seeded)
 
-### Phase 2: UI Components
+### Phase 2: Agent Tools ✅
+- [x] Define tools wrapping each mutation (25 tools)
+- [x] Register tools with workoutAgent
+- [x] Implement agent auth pattern (internal mutations + thread userId)
+- [ ] Test tool execution end-to-end
+
+### Phase 3: UI Components
+- [x] Add debug UI for testing program CRUD (src/routes/demo/auth.tsx - ProgramsDebug component)
 - [ ] Build grid wrapper component around Dice UI for single day
 - [ ] Create scrollable day list layout
 - [ ] Implement day navigation
 
-### Phase 3: Manual Editing
+### Phase 4: Manual Editing
 - [ ] Wire grid interactions to mutations
 - [ ] Handle optimistic updates
 - [ ] Test reactivity/re-rendering
 
-### Phase 4: Agent Integration
-- [ ] Hook agent tools to mutations
+### Phase 5: Agent Integration
 - [ ] Build chat panel component
-- [ ] Implement context passing (current program state + pending changes)
+- [ ] Implement context passing (current program state)
 
-### Phase 5: Trust Mode & Pending Changes
+### Phase 6: Trust Mode & Pending Changes (TODO - defer)
+- [ ] Create pendingChanges tables
 - [ ] Build review panel for pending changes
 - [ ] Implement trust mode toggle (high/low)
 - [ ] Route tool calls through trust mode execution layer
 - [ ] Add accept/deny flow for pending changes
-
-### Phase 6: Polish
-- [ ] Test agent iteration with pending changes
-- [ ] Optimize re-renders
-- [ ] Handle edge cases
 
 ## Future Features
 - Preferred weight unit (lbs or kg)

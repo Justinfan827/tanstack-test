@@ -4,7 +4,6 @@ import { v } from "convex/values";
 export default defineSchema({
   users: defineTable({
     authId: v.string(),
-    name: v.string(),
     trustMode: v.union(v.literal("high"), v.literal("low")),
   }).index("by_auth_id", ["authId"]),
 
