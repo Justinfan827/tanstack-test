@@ -329,6 +329,92 @@ export const workoutAgent = new Agent(components.agent, {
 });
 ```
 
+### Grid Implementation (Phase 3-4)
+
+**Component Structure:**
+```
+ProgramsSection
+├── ProgramsSidebar (program list + create)
+└── ProgramGrid (fetches program data)
+    └── DayGrid (one per day, handles editing)
+        └── DataGrid (Dice UI component)
+```
+
+**Key Files:**
+- `src/routes/demo/auth.tsx` - ProgramGrid, DayGrid, ProgramsSidebar components
+- `convex/programRows.ts` - batchUpdateRows mutation
+
+**Grid Column Definitions:**
+| Column | Variant | Editable |
+|--------|---------|----------|
+| Exercise | short-text | No (read-only, displays exercise name) |
+| Weight | short-text | Yes |
+| Reps | short-text | Yes |
+| Sets | short-text | Yes |
+| Notes | long-text | Yes |
+
+**Batch Updates:**
+- `batchUpdateRows` mutation accepts array of `{ rowId, fields }` updates
+- Groups updates by row on client (one `ctx.db.patch` per row, not per field)
+- Convex queues all db changes and executes in single transaction
+- See: https://docs.convex.dev/database/writing-data#bulk-inserts-or-updates
+
+**Optimistic Updates:**
+- Uses Convex `.withOptimisticUpdate()` for instant UI feedback
+- See: https://docs.convex.dev/client/react/optimistic-updates
+
+```typescript
+// DayGrid component
+const batchUpdateRows = useMutation(
+  api.programRows.batchUpdateRows
+).withOptimisticUpdate((localStore, args) => {
+  const program = localStore.getQuery(api.programs.getProgram, { programId })
+  if (!program) return
+
+  const updatesMap = new Map(args.updates.map(u => [u.rowId, u.fields]))
+
+  const newProgram = {
+    ...program,
+    days: program.days.map(day => {
+      if (day._id !== dayId) return day
+      return {
+        ...day,
+        rows: day.rows.map(row => {
+          const update = updatesMap.get(row._id)
+          if (!update || row.kind !== 'exercise') return row
+          return { ...row, ...update }
+        }),
+      }
+    }),
+  }
+
+  localStore.setQuery(api.programs.getProgram, { programId }, newProgram)
+})
+```
+
+**Data Flow:**
+```
+User edits cell
+    ↓
+handleDataChange(newData)
+    ↓
+Compare with prevDataRef, build updates array
+    ↓
+batchUpdateRows({ updates })
+    ↓
+Optimistic update runs (UI updates instantly)
+    ↓
+Mutation runs on server
+    ↓
+Server responds, optimistic update rolled back, real query applied
+```
+
+**Why Optimistic Updates over Client-Side State:**
+1. Agent always sees latest committed data (no "unsaved changes" problem)
+2. No merge conflicts between user edits and agent edits
+3. Automatic rollback if mutation fails
+4. No "Save" button needed
+
 ### Queries Implemented
 ```typescript
 // programs.ts
@@ -358,16 +444,16 @@ getExercise(exerciseId)         // ✅ single exercise lookup
 - [x] Implement agent auth pattern (internal mutations + thread userId)
 - [ ] Test tool execution end-to-end
 
-### Phase 3: UI Components
+### Phase 3: UI Components ✅
 - [x] Add debug UI for testing program CRUD (src/routes/demo/auth.tsx - ProgramsDebug component)
-- [ ] Build grid wrapper component around Dice UI for single day
-- [ ] Create scrollable day list layout
-- [ ] Implement day navigation
+- [x] Build grid wrapper component around Dice UI for single day (DayGrid component)
+- [x] Create scrollable day list layout (ProgramGrid component with stacked DayGrid components)
+- [x] Implement day navigation (all days visible, scrollable)
 
-### Phase 4: Manual Editing
-- [ ] Wire grid interactions to mutations
-- [ ] Handle optimistic updates
-- [ ] Test reactivity/re-rendering
+### Phase 4: Manual Editing ✅
+- [x] Wire grid interactions to mutations (batchUpdateRows mutation)
+- [x] Handle optimistic updates (withOptimisticUpdate on batchUpdateRows)
+- [x] Test reactivity/re-rendering
 
 ### Phase 5: Agent Integration
 - [ ] Build chat panel component

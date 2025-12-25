@@ -76,6 +76,72 @@ export const addHeader = mutation({
 });
 
 /**
+ * Update a single field on an exercise row.
+ */
+export const updateField = mutation({
+  args: {
+    rowId: v.id("programRows"),
+    field: v.union(
+      v.literal("weight"),
+      v.literal("reps"),
+      v.literal("sets"),
+      v.literal("notes"),
+    ),
+    value: v.string(),
+  },
+  returns: v.null(),
+  handler: async (ctx, args) => {
+    const userId = await getCurrentUserId(ctx);
+    const { row } = await verifyRowOwnership(ctx, args.rowId, userId);
+
+    if (row.kind !== "exercise") {
+      throw new Error("Row is not an exercise");
+    }
+
+    const patch = {
+      [args.field]: args.value,
+    };
+
+    await ctx.db.patch(args.rowId, patch);
+    return null;
+  },
+});
+
+/**
+ * Batch update multiple rows, grouping all field changes per row.
+ * More efficient than calling updateField multiple times.
+ */
+export const batchUpdateRows = mutation({
+  args: {
+    updates: v.array(
+      v.object({
+        rowId: v.id("programRows"),
+        fields: v.object({
+          weight: v.optional(v.string()),
+          reps: v.optional(v.string()),
+          sets: v.optional(v.string()),
+          notes: v.optional(v.string()),
+        }),
+      }),
+    ),
+  },
+  returns: v.null(),
+  handler: async (ctx, args) => {
+    const userId = await getCurrentUserId(ctx);
+
+    // Looping is efficient here: Convex queues all db changes and executes
+    // them in a single transaction when the mutation ends.
+    // See: https://docs.convex.dev/database/writing-data#bulk-inserts-or-updates
+    for (const update of args.updates) {
+      const { row } = await verifyRowOwnership(ctx, update.rowId, userId);
+      if (row.kind !== "exercise") continue;
+      await ctx.db.patch(update.rowId, update.fields);
+    }
+    return null;
+  },
+});
+
+/**
  * Update an exercise row's fields.
  */
 export const updateExercise = mutation({
