@@ -17,7 +17,7 @@ import type {
   Direction,
   FileCellData,
   RowHeightValue,
-} from "@/features/data-grid/types/data-grid"; 
+} from "@/components/data-grid/types/data-grid"; 
 
 export function flexRender<TProps extends object>(
   Comp: ((props: TProps) => React.ReactNode) | string | undefined,

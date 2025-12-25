@@ -30,7 +30,7 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { getColumnVariant } from "@/features/data-grid/lib/data-grid";
+import { getColumnVariant } from "@/components/data-grid/lib/data-grid";
 import { cn } from "@/lib/utils";
 import { BaseUIEvent } from "node_modules/@base-ui/react/esm/utils/types";
 

@@ -12,8 +12,8 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useAsRef } from "@/hooks/use-as-ref";
-import { parseCellKey } from "@/features/data-grid/lib/data-grid";
-import type { ContextMenuState, UpdateCell } from "@/features/data-grid/types/data-grid";
+import { parseCellKey } from "@/components/data-grid/lib/data-grid";
+import type { ContextMenuState, UpdateCell } from "@/components/data-grid/types/data-grid";
 
 interface DataGridContextMenuProps<TData> {
   tableMeta: TableMeta<TData>;

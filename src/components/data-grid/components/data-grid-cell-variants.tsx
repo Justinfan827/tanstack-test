@@ -15,7 +15,7 @@ import {
 } from "lucide-react";
 import * as React from "react";
 import { toast } from "sonner";
-import { DataGridCellWrapper } from "@/features/data-grid/components/data-grid-cell-wrapper";
+import { DataGridCellWrapper } from "@/components/data-grid/components/data-grid-cell-wrapper";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
@@ -54,9 +54,9 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Textarea } from "@/components/ui/textarea";
 import { useBadgeOverflow } from "@/hooks/use-badge-overflow";
 import { useDebouncedCallback } from "@/hooks/use-debounced-callback";
-import { getCellKey, getLineCount } from "@/features/data-grid/lib/data-grid";
+import { getCellKey, getLineCount } from "@/components/data-grid/lib/data-grid";
 import { cn } from "@/lib/utils";
-import type { DataGridCellProps, FileCellData } from "@/features/data-grid/types/data-grid";
+import type { DataGridCellProps, FileCellData } from "@/components/data-grid/types/data-grid";
 import { BaseUIEvent } from "node_modules/@base-ui/react/esm/utils/types";
 
 export function ShortTextCell<TData>({
@@ -988,16 +988,6 @@ export function ComboboxCell<TData>({
   const labelMap = React.useMemo(
     () => new Map(options.map((opt) => [opt.value, opt.label])),
     [options],
-  );
-
-  // Case-insensitive filter function
-  const filterFn = React.useCallback(
-    (itemValue: string, query: string) => {
-      if (!query) return true;
-      const label = labelMap.get(itemValue) ?? itemValue;
-      return label.toLowerCase().includes(query.toLowerCase());
-    },
-    [labelMap],
   );
 
   const prevInitialValueRef = React.useRef(initialValue);

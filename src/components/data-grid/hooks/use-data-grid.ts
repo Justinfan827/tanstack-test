@@ -31,7 +31,7 @@ import {
   matchSelectOption,
   parseCellKey,
   scrollCellIntoView,
-} from '@/features/data-grid/lib/data-grid'
+} from '@/components/data-grid/lib/data-grid'
 import type {
   CellPosition,
   ContextMenuState,
@@ -43,7 +43,7 @@ import type {
   SearchState,
   SelectionState,
   UpdateCell,
-} from "@/features/data-grid/types/data-grid"; 
+} from "@/components/data-grid/types/data-grid"; 
 
 const DEFAULT_ROW_HEIGHT = 'short'
 const OVERSCAN = 6

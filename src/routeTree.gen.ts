@@ -10,9 +10,8 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as PostsRouteImport } from './routes/posts'
+import { Route as AdminRouteImport } from './routes/admin'
 import { Route as IndexRouteImport } from './routes/index'
-import { Route as PostsPostIdRouteImport } from './routes/posts/$postId'
-import { Route as DemoAuthRouteImport } from './routes/demo/auth'
 import { Route as DemoStartApiRequestRouteImport } from './routes/demo/start.api-request'
 import { Route as DemoApiNamesRouteImport } from './routes/demo/api.names'
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
@@ -24,19 +23,14 @@ const PostsRoute = PostsRouteImport.update({
   path: '/posts',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AdminRoute = AdminRouteImport.update({
+  id: '/admin',
+  path: '/admin',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const PostsPostIdRoute = PostsPostIdRouteImport.update({
-  id: '/$postId',
-  path: '/$postId',
-  getParentRoute: () => PostsRoute,
-} as any)
-const DemoAuthRoute = DemoAuthRouteImport.update({
-  id: '/demo/auth',
-  path: '/demo/auth',
   getParentRoute: () => rootRouteImport,
 } as any)
 const DemoStartApiRequestRoute = DemoStartApiRequestRouteImport.update({
@@ -67,9 +61,8 @@ const DemoStartSsrDataOnlyRoute = DemoStartSsrDataOnlyRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
-  '/posts': typeof PostsRouteWithChildren
-  '/demo/auth': typeof DemoAuthRoute
-  '/posts/$postId': typeof PostsPostIdRoute
+  '/admin': typeof AdminRoute
+  '/posts': typeof PostsRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/demo/api/names': typeof DemoApiNamesRoute
   '/demo/start/api-request': typeof DemoStartApiRequestRoute
@@ -78,9 +71,8 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
-  '/posts': typeof PostsRouteWithChildren
-  '/demo/auth': typeof DemoAuthRoute
-  '/posts/$postId': typeof PostsPostIdRoute
+  '/admin': typeof AdminRoute
+  '/posts': typeof PostsRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/demo/api/names': typeof DemoApiNamesRoute
   '/demo/start/api-request': typeof DemoStartApiRequestRoute
@@ -90,9 +82,8 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
-  '/posts': typeof PostsRouteWithChildren
-  '/demo/auth': typeof DemoAuthRoute
-  '/posts/$postId': typeof PostsPostIdRoute
+  '/admin': typeof AdminRoute
+  '/posts': typeof PostsRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/demo/api/names': typeof DemoApiNamesRoute
   '/demo/start/api-request': typeof DemoStartApiRequestRoute
@@ -103,9 +94,8 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/admin'
     | '/posts'
-    | '/demo/auth'
-    | '/posts/$postId'
     | '/api/auth/$'
     | '/demo/api/names'
     | '/demo/start/api-request'
@@ -114,9 +104,8 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/admin'
     | '/posts'
-    | '/demo/auth'
-    | '/posts/$postId'
     | '/api/auth/$'
     | '/demo/api/names'
     | '/demo/start/api-request'
@@ -125,9 +114,8 @@ export interface FileRouteTypes {
   id:
     | '__root__'
     | '/'
+    | '/admin'
     | '/posts'
-    | '/demo/auth'
-    | '/posts/$postId'
     | '/api/auth/$'
     | '/demo/api/names'
     | '/demo/start/api-request'
@@ -137,8 +125,8 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
-  PostsRoute: typeof PostsRouteWithChildren
-  DemoAuthRoute: typeof DemoAuthRoute
+  AdminRoute: typeof AdminRoute
+  PostsRoute: typeof PostsRoute
   ApiAuthSplatRoute: typeof ApiAuthSplatRoute
   DemoApiNamesRoute: typeof DemoApiNamesRoute
   DemoStartApiRequestRoute: typeof DemoStartApiRequestRoute
@@ -155,25 +143,18 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PostsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/admin': {
+      id: '/admin'
+      path: '/admin'
+      fullPath: '/admin'
+      preLoaderRoute: typeof AdminRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/': {
       id: '/'
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/posts/$postId': {
-      id: '/posts/$postId'
-      path: '/$postId'
-      fullPath: '/posts/$postId'
-      preLoaderRoute: typeof PostsPostIdRouteImport
-      parentRoute: typeof PostsRoute
-    }
-    '/demo/auth': {
-      id: '/demo/auth'
-      path: '/demo/auth'
-      fullPath: '/demo/auth'
-      preLoaderRoute: typeof DemoAuthRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/demo/start/api-request': {
@@ -214,20 +195,10 @@ declare module '@tanstack/react-router' {
   }
 }
 
-interface PostsRouteChildren {
-  PostsPostIdRoute: typeof PostsPostIdRoute
-}
-
-const PostsRouteChildren: PostsRouteChildren = {
-  PostsPostIdRoute: PostsPostIdRoute,
-}
-
-const PostsRouteWithChildren = PostsRoute._addFileChildren(PostsRouteChildren)
-
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
-  PostsRoute: PostsRouteWithChildren,
-  DemoAuthRoute: DemoAuthRoute,
+  AdminRoute: AdminRoute,
+  PostsRoute: PostsRoute,
   ApiAuthSplatRoute: ApiAuthSplatRoute,
   DemoApiNamesRoute: DemoApiNamesRoute,
   DemoStartApiRequestRoute: DemoStartApiRequestRoute,
