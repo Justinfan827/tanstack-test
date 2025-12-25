@@ -238,16 +238,23 @@ function ProgramGrid({ programId }: { programId: Id<'programs'> }) {
     })
   }, [program, exerciseMap])
 
+  const options = useMemo(() => {
+    return exercises
+      ? exercises.map((e) => ({ label: e.name, value: e._id }))
+      : []
+  }, [exercises])
+
   // Column definitions
   const columns = useMemo<ColumnDef<ExerciseRow>[]>(
     () => [
       {
         id: 'exercise',
-        accessorKey: 'exerciseName',
+        accessorKey: 'libraryExerciseId',
         header: 'Exercise',
         meta: {
           cell: {
-            variant: 'short-text',
+            variant: 'combobox',
+            options,
           },
         },
         minSize: 180,
@@ -297,7 +304,7 @@ function ProgramGrid({ programId }: { programId: Id<'programs'> }) {
         minSize: 200,
       },
     ],
-    [],
+    [options],
   )
 
 

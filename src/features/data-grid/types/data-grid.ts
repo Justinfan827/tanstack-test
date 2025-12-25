@@ -29,6 +29,10 @@ export type CellOpts =
       options: CellSelectOption[];
     }
   | {
+      variant: "combobox";
+      options: CellSelectOption[];
+    }
+  | {
       variant: "multi-select";
       options: CellSelectOption[];
     }

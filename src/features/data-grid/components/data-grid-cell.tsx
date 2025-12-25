@@ -4,6 +4,7 @@ import * as React from "react";
 
 import {
   CheckboxCell,
+  ComboboxCell,
   DateCell,
   FileCell,
   LongTextCell,
@@ -81,6 +82,9 @@ function DataGridCellImpl<TData>({
       break;
     case "select":
       Comp = SelectCell;
+      break;
+    case "combobox":
+      Comp = ComboboxCell;
       break;
     case "multi-select":
       Comp = MultiSelectCell;
