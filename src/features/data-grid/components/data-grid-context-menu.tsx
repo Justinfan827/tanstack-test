@@ -12,8 +12,8 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useAsRef } from "@/hooks/use-as-ref";
-import { parseCellKey } from "@/components/data-grid/data-grid";
-import type { ContextMenuState, UpdateCell } from "@/components/data-grid/data-grid";
+import { parseCellKey } from "@/features/data-grid/lib/data-grid";
+import type { ContextMenuState, UpdateCell } from "@/features/data-grid/types/data-grid";
 
 interface DataGridContextMenuProps<TData> {
   tableMeta: TableMeta<TData>;
@@ -121,15 +121,17 @@ function ContextMenuImpl<TData>({
     [contextMenu.x, contextMenu.y],
   );
 
-  const onCloseAutoFocus: NonNullable<
-    React.ComponentProps<typeof DropdownMenuContent>["onCloseAutoFocus"]
-  > = React.useCallback(
-    (event) => {
-      event.preventDefault();
-      propsRef.current.dataGridRef?.current?.focus();
-    },
-    [propsRef],
-  );
+  // TODO: base ui does not have this prop.
+  //
+  // const onCloseAutoFocus: NonNullable<
+  //   React.ComponentProps<typeof DropdownMenuContent>["onCloseAutoFocus"]
+  // > = React.useCallback(
+  //   (event) => {
+  //     event.preventDefault();
+  //     propsRef.current.dataGridRef?.current?.focus();
+  //   },
+  //   [propsRef],
+  // );
 
   const onCopy = React.useCallback(() => {
     propsRef.current.onCellsCopy?.();
@@ -213,7 +215,7 @@ function ContextMenuImpl<TData>({
         data-grid-popover=""
         align="start"
         className="w-48"
-        onCloseAutoFocus={onCloseAutoFocus}
+        // onCloseAutoFocus={onCloseAutoFocus}
       >
         <DropdownMenuItem onSelect={onCopy}>
           <CopyIcon />

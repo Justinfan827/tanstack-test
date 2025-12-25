@@ -1,5 +1,6 @@
 {
   "include": ["**/*.ts", "**/*.tsx"],
+  "exclude": ["convex/_generated", "convex/betterAuth/_generated"],
   "compilerOptions": {
     "target": "ES2022",
     "jsx": "react-jsx",

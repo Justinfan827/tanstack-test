@@ -8,20 +8,20 @@ import type {
 } from "@tanstack/react-table";
 import type { VirtualItem } from "@tanstack/react-virtual";
 import * as React from "react";
-import { DataGridCell } from "@/components/data-grid/data-grid-cell";
+import { DataGridCell } from "@/features/data-grid/components/data-grid-cell";
 import { useComposedRefs } from "@/lib/compose-refs";
 import {
   flexRender,
   getCellKey,
   getCommonPinningStyles,
   getRowHeightValue,
-} from "@/components/data-grid/data-grid";
+} from "@/features/data-grid/lib/data-grid";
 import { cn } from "@/lib/utils";
 import type {
   CellPosition,
   Direction,
   RowHeightValue,
-} from "@/components/data-grid/data-grid";
+} from "@/features/data-grid/types/data-grid";
 
 interface DataGridRowProps<TData> extends React.ComponentProps<"div"> {
   row: Row<TData>;

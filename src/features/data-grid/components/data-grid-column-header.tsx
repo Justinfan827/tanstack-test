@@ -30,8 +30,9 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { getColumnVariant } from "@/components/data-grid/data-grid";
+import { getColumnVariant } from "@/features/data-grid/lib/data-grid";
 import { cn } from "@/lib/utils";
+import { BaseUIEvent } from "node_modules/@base-ui/react/esm/utils/types";
 
 interface DataGridColumnHeaderProps<TData, TValue>
   extends React.ComponentProps<typeof DropdownMenuTrigger> {
@@ -105,7 +106,7 @@ export function DataGridColumnHeader<TData, TValue>({
   }, [column]);
 
   const onTriggerPointerDown = React.useCallback(
-    (event: React.PointerEvent<HTMLButtonElement>) => {
+    (event: BaseUIEvent<React.PointerEvent<HTMLButtonElement>>) => {
       onPointerDown?.(event);
       if (event.defaultPrevented) return;
 
@@ -131,7 +132,7 @@ export function DataGridColumnHeader<TData, TValue>({
         >
           <div className="flex min-w-0 flex-1 items-center gap-1.5">
             {columnVariant && (
-              <Tooltip delayDuration={100}>
+              <Tooltip delay={100}>
                 <TooltipTrigger render={<columnVariant.icon className="size-3.5 shrink-0 text-muted-foreground" />}></TooltipTrigger>
                 <TooltipContent side="top">
                   <p>{columnVariant.label}</p>

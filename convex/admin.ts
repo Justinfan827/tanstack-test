@@ -1,7 +1,7 @@
 import { ConvexError } from "convex/values";
 import { mutation } from './_generated/server'
 import { v } from 'convex/values'
-import { authComponent, createAuth } from "./auth";
+import { createAuth } from "./auth";
 
 const checkSecret = (value: string) => {
   if (process.env.API_ADMIN_SECRET !== value) {

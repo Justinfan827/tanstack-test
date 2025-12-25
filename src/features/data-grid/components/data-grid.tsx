@@ -2,16 +2,16 @@
 
 import { Plus } from "lucide-react";
 import * as React from "react";
-import { DataGridColumnHeader } from "@/components/data-grid/data-grid-column-header";
-import { DataGridContextMenu } from "@/components/data-grid/data-grid-context-menu";
-import { DataGridPasteDialog } from "@/components/data-grid/data-grid-paste-dialog";
-import { DataGridRow } from "@/components/data-grid/data-grid-row";
-import { DataGridSearch } from "@/components/data-grid/data-grid-search";
+import { DataGridColumnHeader } from "@/features/data-grid/components/data-grid-column-header";
+import { DataGridContextMenu } from "@/features/data-grid/components/data-grid-context-menu";
+import { DataGridPasteDialog } from "@/features/data-grid/components/data-grid-paste-dialog";
+import { DataGridRow } from "@/features/data-grid/components/data-grid-row";
+import { DataGridSearch } from "@/features/data-grid/components/data-grid-search";
 import { useAsRef } from "@/hooks/use-as-ref";
-import type { useDataGrid } from "@/hooks/use-data-grid";
-import { flexRender, getCommonPinningStyles } from "@/components/data-grid/data-grid";
+import type { useDataGrid } from "@/features/data-grid/hooks/use-data-grid";
+import { flexRender, getCommonPinningStyles } from "@/features/data-grid/lib/data-grid";
 import { cn } from "@/lib/utils";
-import type { Direction } from "@/components/data-grid/data-grid";
+import type { Direction } from "@/features/data-grid/types/data-grid";
 
 const EMPTY_CELL_SELECTION_SET = new Set<string>();
 
