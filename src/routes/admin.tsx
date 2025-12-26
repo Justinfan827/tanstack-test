@@ -14,7 +14,6 @@ import { z } from 'zod'
 import { ChatPanel } from '@/components/chat/ChatPanel'
 import { SignOutButton } from '@/components/SignOutButton'
 import { Button } from '@/components/ui/button'
-import { ScrollArea } from '@/components/ui/scroll-area'
 import {
   Field,
   FieldDescription,
@@ -25,10 +24,11 @@ import {
   FieldSet,
 } from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
+import { ScrollArea } from '@/components/ui/scroll-area'
+import { ProgramGrid } from '@/features/programstudio/program-grid'
 import { authClient } from '@/lib/auth-client'
 import { api } from '../../convex/_generated/api'
-import { Id } from '../../convex/_generated/dataModel'
-import { ProgramGrid } from '@/features/programstudio/program-grid'
+import type { Id } from '../../convex/_generated/dataModel'
 
 const adminSearchSchema = z.object({
   threadId: z.string().optional(),

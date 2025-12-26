@@ -9,19 +9,19 @@ import type {
 import type { VirtualItem } from '@tanstack/react-virtual'
 import * as React from 'react'
 import { DataGridCell } from '@/components/data-grid/components/data-grid-cell'
-import { useComposedRefs } from '@/lib/compose-refs'
 import {
   flexRender,
   getCellKey,
   getCommonPinningStyles,
   getRowHeightValue,
 } from '@/components/data-grid/lib/data-grid'
-import { cn } from '@/lib/utils'
 import type {
   CellPosition,
   Direction,
   RowHeightValue,
 } from '@/components/data-grid/types/data-grid'
+import { useComposedRefs } from '@/lib/compose-refs'
+import { cn } from '@/lib/utils'
 
 interface DataGridRowProps<TData> extends React.ComponentProps<'div'> {
   row: Row<TData>

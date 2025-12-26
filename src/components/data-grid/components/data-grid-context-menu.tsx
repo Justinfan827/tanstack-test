@@ -4,6 +4,11 @@ import type { ColumnDef, TableMeta } from '@tanstack/react-table'
 import { CopyIcon, EraserIcon, ScissorsIcon, Trash2Icon } from 'lucide-react'
 import * as React from 'react'
 import { toast } from 'sonner'
+import { parseCellKey } from '@/components/data-grid/lib/data-grid'
+import type {
+  ContextMenuState,
+  UpdateCell,
+} from '@/components/data-grid/types/data-grid'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -12,11 +17,6 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { useAsRef } from '@/hooks/use-as-ref'
-import { parseCellKey } from '@/components/data-grid/lib/data-grid'
-import type {
-  ContextMenuState,
-  UpdateCell,
-} from '@/components/data-grid/types/data-grid'
 
 interface DataGridContextMenuProps<TData> {
   tableMeta: TableMeta<TData>

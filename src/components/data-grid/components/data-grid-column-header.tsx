@@ -15,8 +15,9 @@ import {
   PinOffIcon,
   XIcon,
 } from 'lucide-react'
+import type { BaseUIEvent } from 'node_modules/@base-ui/react/esm/utils/types'
 import * as React from 'react'
-
+import { getColumnVariant } from '@/components/data-grid/lib/data-grid'
 import {
   DropdownMenu,
   DropdownMenuCheckboxItem,
@@ -30,9 +31,7 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from '@/components/ui/tooltip'
-import { getColumnVariant } from '@/components/data-grid/lib/data-grid'
 import { cn } from '@/lib/utils'
-import { BaseUIEvent } from 'node_modules/@base-ui/react/esm/utils/types'
 
 interface DataGridColumnHeaderProps<TData, TValue>
   extends React.ComponentProps<typeof DropdownMenuTrigger> {

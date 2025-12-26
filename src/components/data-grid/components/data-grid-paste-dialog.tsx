@@ -2,6 +2,7 @@
 
 import type { TableMeta } from '@tanstack/react-table'
 import * as React from 'react'
+import type { PasteDialogState } from '@/components/data-grid/types/data-grid'
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
@@ -13,7 +14,6 @@ import {
 } from '@/components/ui/dialog'
 import { useAsRef } from '@/hooks/use-as-ref'
 import { cn } from '@/lib/utils'
-import type { PasteDialogState } from '@/components/data-grid/types/data-grid'
 
 interface DataGridPasteDialogProps<TData> {
   tableMeta: TableMeta<TData>

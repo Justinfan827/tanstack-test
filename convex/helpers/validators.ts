@@ -9,6 +9,8 @@ export const exerciseRowInput = v.object({
   weight: v.string(),
   reps: v.string(),
   sets: v.string(),
+  rest: v.optional(v.string()),
+  effort: v.optional(v.string()),
   notes: v.string(),
   groupId: v.optional(v.string()),
 });
@@ -44,6 +46,8 @@ export const exerciseFieldUpdates = v.object({
   weight: v.optional(v.string()),
   reps: v.optional(v.string()),
   sets: v.optional(v.string()),
+  rest: v.optional(v.union(v.string(), v.null())), // null to clear
+  effort: v.optional(v.union(v.string(), v.null())), // null to clear
   notes: v.optional(v.string()),
   groupId: v.optional(v.union(v.string(), v.null())), // null to clear
 });

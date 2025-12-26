@@ -37,6 +37,8 @@ export default defineSchema({
         weight: v.string(),
         reps: v.string(),
         sets: v.string(),
+        rest: v.optional(v.string()),
+        effort: v.optional(v.string()),
         notes: v.string(),
         groupId: v.optional(v.string()),
       }),

@@ -17,9 +17,58 @@ export const addExerciseTool = createTool({
       .describe("The ID of the exercise from the exercise library"),
     weight: z
       .string()
-      .describe("Weight notation, e.g. '135', '135-155', 'bodyweight'"),
-    reps: z.string().describe("Rep notation, e.g. '8', '8-12', 'AMRAP'"),
-    sets: z.string().describe("Number of sets, e.g. '3', '3-4'"),
+      .describe(
+        `Weight notation (unitless). Examples:
+- Fixed: "125"
+- Per-set: "125,130,135"
+- Range: "125-135"
+- Per side: "50 ES", "50ES", "50 E/S"
+- Bodyweight: "BW", "BW+25", "BW+20-30"
+- Mixed: "125-135,140,145"
+Decimals up to 2 places allowed. Max 2000.`
+      ),
+    reps: z
+      .string()
+      .describe(
+        `Rep notation. Examples:
+- Fixed: "8"
+- Per-set: "12,10,8"
+- Range: "8-12"
+- AMRAP: "AMRAP" (case-insensitive)
+- Mixed: "10,8,AMRAP"
+Integers only, min 1, max 999.`
+      ),
+    sets: z
+      .string()
+      .describe(
+        `Set notation. Examples:
+- Fixed: "3"
+- Range: "3-4"
+- With AMRAP finisher: "3+AMRAP"
+Integers only, min 1, max 99.`
+      ),
+    rest: z
+      .string()
+      .optional()
+      .describe(
+        `Rest notation. Examples:
+- Seconds: "90s"
+- Minutes: "2m"
+- Combined: "1m30s"
+- Range: "1m-2m", "60s-90s"
+- Per-set: "90s,2m,2m"
+Min 1s, max 60m.`
+      ),
+    effort: z
+      .string()
+      .optional()
+      .describe(
+        `Effort notation (unitless, displayed as RPE or RIR per config). Examples:
+- Fixed: "8"
+- Per-set: "7,8,9"
+- Range: "7-8"
+Range 0-10. Decimals up to 2 places allowed.`
+      ),
     notes: z.string().describe("Optional notes for the exercise").default(""),
     groupId: z
       .string()
@@ -37,6 +86,8 @@ export const addExerciseTool = createTool({
       weight: args.weight,
       reps: args.reps,
       sets: args.sets,
+      rest: args.rest,
+      effort: args.effort,
       notes: args.notes,
       groupId: args.groupId,
     });
@@ -79,9 +130,36 @@ export const updateExerciseTool = createTool({
       .string()
       .optional()
       .describe("New exercise from library"),
-    weight: z.string().optional().describe("New weight notation"),
-    reps: z.string().optional().describe("New rep notation"),
-    sets: z.string().optional().describe("New sets notation"),
+    weight: z
+      .string()
+      .optional()
+      .describe(
+        `Weight notation (unitless). Examples: "125", "125,130,135", "125-135", "50 ES", "BW", "BW+25". Max 2000.`
+      ),
+    reps: z
+      .string()
+      .optional()
+      .describe(
+        `Rep notation. Examples: "8", "12,10,8", "8-12", "AMRAP", "10,8,AMRAP". Min 1, max 999.`
+      ),
+    sets: z
+      .string()
+      .optional()
+      .describe(
+        `Set notation. Examples: "3", "3-4", "3+AMRAP". Min 1, max 99.`
+      ),
+    rest: z
+      .string()
+      .optional()
+      .describe(
+        `Rest notation. Examples: "90s", "2m", "1m30s", "1m-2m", "90s,2m,2m". Min 1s, max 60m.`
+      ),
+    effort: z
+      .string()
+      .optional()
+      .describe(
+        `Effort notation (unitless). Examples: "8", "7,8,9", "7-8". Range 0-10.`
+      ),
     notes: z.string().optional().describe("New notes"),
     groupId: z
       .string()
@@ -98,6 +176,8 @@ export const updateExerciseTool = createTool({
       weight?: string;
       reps?: string;
       sets?: string;
+      rest?: string | null;
+      effort?: string | null;
       notes?: string;
       groupId?: string | null;
     } = {};
@@ -106,6 +186,8 @@ export const updateExerciseTool = createTool({
     if (args.weight !== undefined) updates.weight = args.weight;
     if (args.reps !== undefined) updates.reps = args.reps;
     if (args.sets !== undefined) updates.sets = args.sets;
+    if (args.rest !== undefined) updates.rest = args.rest;
+    if (args.effort !== undefined) updates.effort = args.effort;
     if (args.notes !== undefined) updates.notes = args.notes;
     if (args.groupId !== undefined) updates.groupId = args.groupId;
 
@@ -347,9 +429,11 @@ const rowInputSchema = z.union([
   z.object({
     kind: z.literal("exercise"),
     libraryExerciseId: z.string(),
-    weight: z.string(),
-    reps: z.string(),
-    sets: z.string(),
+    weight: z.string().describe("Weight notation (unitless). See addExercise for format."),
+    reps: z.string().describe("Rep notation. See addExercise for format."),
+    sets: z.string().describe("Set notation. See addExercise for format."),
+    rest: z.string().optional().describe("Rest notation. See addExercise for format."),
+    effort: z.string().optional().describe("Effort notation (unitless). See addExercise for format."),
     notes: z.string(),
     groupId: z.string().optional(),
   }),
@@ -383,6 +467,8 @@ export const replaceDayTool = createTool({
             weight: row.weight,
             reps: row.reps,
             sets: row.sets,
+            rest: row.rest,
+            effort: row.effort,
             notes: row.notes,
             groupId: row.groupId,
           };
@@ -504,6 +590,8 @@ export const replaceProgramTool = createTool({
               weight: row.weight,
               reps: row.reps,
               sets: row.sets,
+              rest: row.rest,
+              effort: row.effort,
               notes: row.notes,
               groupId: row.groupId,
             };

@@ -225,6 +225,12 @@ export const updateExercise = mutation({
     if (args.updates.sets !== undefined) {
       patch.sets = args.updates.sets;
     }
+    if (args.updates.rest !== undefined) {
+      patch.rest = args.updates.rest === null ? undefined : args.updates.rest;
+    }
+    if (args.updates.effort !== undefined) {
+      patch.effort = args.updates.effort === null ? undefined : args.updates.effort;
+    }
     if (args.updates.notes !== undefined) {
       patch.notes = args.updates.notes;
     }
@@ -475,6 +481,8 @@ export const internalAddExercise = internalMutation({
     weight: v.string(),
     reps: v.string(),
     sets: v.string(),
+    rest: v.optional(v.string()),
+    effort: v.optional(v.string()),
     notes: v.string(),
     groupId: v.optional(v.string()),
   },
@@ -500,6 +508,8 @@ export const internalAddExercise = internalMutation({
       weight: args.weight,
       reps: args.reps,
       sets: args.sets,
+      rest: args.rest,
+      effort: args.effort,
       notes: args.notes,
       groupId: args.groupId,
     });
@@ -567,6 +577,12 @@ export const internalUpdateExercise = internalMutation({
     }
     if (args.updates.sets !== undefined) {
       patch.sets = args.updates.sets;
+    }
+    if (args.updates.rest !== undefined) {
+      patch.rest = args.updates.rest === null ? undefined : args.updates.rest;
+    }
+    if (args.updates.effort !== undefined) {
+      patch.effort = args.updates.effort === null ? undefined : args.updates.effort;
     }
     if (args.updates.notes !== undefined) {
       patch.notes = args.updates.notes;
