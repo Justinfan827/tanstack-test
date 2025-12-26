@@ -10,7 +10,7 @@ import { exerciseFieldUpdates, headerFieldUpdates } from "./helpers/validators";
 export const addExercise = mutation({
   args: {
     dayId: v.id("days"),
-    libraryExerciseId: v.id("exerciseLibrary"),
+    libraryExerciseId: v.optional(v.id("exerciseLibrary")),
     weight: v.string(),
     reps: v.string(),
     sets: v.string(),
@@ -22,13 +22,15 @@ export const addExercise = mutation({
     const userId = await getCurrentUserId(ctx);
     await verifyDayOwnership(ctx, args.dayId, userId);
 
-    // Validate exercise exists and user has access
-    const exercise = await ctx.db.get(args.libraryExerciseId);
-    if (!exercise) {
-      throw new Error("Exercise not found in library");
-    }
-    if (exercise.userId !== undefined && exercise.userId !== userId) {
-      throw new Error("Not authorized to use this exercise");
+    // Validate exercise exists and user has access (if provided)
+    if (args.libraryExerciseId) {
+      const exercise = await ctx.db.get(args.libraryExerciseId);
+      if (!exercise) {
+        throw new Error("Exercise not found in library");
+      }
+      if (exercise.userId !== undefined && exercise.userId !== userId) {
+        throw new Error("Not authorized to use this exercise");
+      }
     }
 
     const order = await getNextRowOrder(ctx, args.dayId);
@@ -43,6 +45,33 @@ export const addExercise = mutation({
       sets: args.sets,
       notes: args.notes,
       groupId: args.groupId,
+    });
+  },
+});
+
+/**
+ * Add an empty exercise row to a day (for grid row creation).
+ */
+export const addEmptyExerciseRow = mutation({
+  args: {
+    dayId: v.id("days"),
+  },
+  returns: v.id("programRows"),
+  handler: async (ctx, args) => {
+    const userId = await getCurrentUserId(ctx);
+    await verifyDayOwnership(ctx, args.dayId, userId);
+
+    const order = await getNextRowOrder(ctx, args.dayId);
+
+    return await ctx.db.insert("programRows", {
+      kind: "exercise",
+      dayId: args.dayId,
+      order,
+      libraryExerciseId: undefined,
+      weight: "",
+      reps: "",
+      sets: "",
+      notes: "",
     });
   },
 });
@@ -258,6 +287,37 @@ export const deleteRow = mutation({
 
     await ctx.db.delete(args.rowId);
     await renumberRows(ctx, row.dayId);
+
+    return null;
+  },
+});
+
+/**
+ * Batch delete multiple rows.
+ */
+export const batchDeleteRows = mutation({
+  args: {
+    rowIds: v.array(v.id("programRows")),
+  },
+  returns: v.null(),
+  handler: async (ctx, args) => {
+    if (args.rowIds.length === 0) return null;
+
+    const userId = await getCurrentUserId(ctx);
+
+    // Track which days need renumbering
+    const dayIds = new Set<string>();
+
+    for (const rowId of args.rowIds) {
+      const { row } = await verifyRowOwnership(ctx, rowId, userId);
+      dayIds.add(row.dayId);
+      await ctx.db.delete(rowId);
+    }
+
+    // Renumber all affected days
+    for (const dayId of dayIds) {
+      await renumberRows(ctx, dayId as any);
+    }
 
     return null;
   },

@@ -33,7 +33,7 @@ export default defineSchema({
         kind: v.literal("exercise"),
         dayId: v.id("days"),
         order: v.number(),
-        libraryExerciseId: v.id("exerciseLibrary"),
+        libraryExerciseId: v.optional(v.id("exerciseLibrary")), // optional for empty rows
         weight: v.string(),
         reps: v.string(),
         sets: v.string(),

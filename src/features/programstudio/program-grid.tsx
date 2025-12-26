@@ -1,5 +1,3 @@
-'use client'
-
 import type { ColumnDef } from '@tanstack/react-table'
 import { useMutation, useQuery } from 'convex/react'
 import { Loader2 } from 'lucide-react'
@@ -11,7 +9,7 @@ import type { Id } from '../../../convex/_generated/dataModel'
 
 export type ExerciseRow = {
   _id: Id<'programRows'>
-  libraryExerciseId: Id<'exerciseLibrary'>
+  libraryExerciseId?: Id<'exerciseLibrary'>
   weight: string
   reps: string
   sets: string
@@ -170,6 +168,64 @@ function DayGrid({
   rows: ExerciseRow[]
   columns: ColumnDef<ExerciseRow>[]
 }) {
+  const addEmptyRow = useMutation(
+    api.programRows.addEmptyExerciseRow,
+  ).withOptimisticUpdate((localStore, args) => {
+    const program = localStore.getQuery(api.programs.getProgram, { programId })
+    if (!program) return
+
+    // Create a temporary ID for the new row
+    const tempId = `temp_${Date.now()}` as Id<'programRows'>
+    const newRow = {
+      _id: tempId,
+      _creationTime: Date.now(),
+      kind: 'exercise' as const,
+      dayId: args.dayId,
+      order: rows.length,
+      libraryExerciseId: undefined,
+      weight: '',
+      reps: '',
+      sets: '',
+      notes: '',
+      groupId: undefined,
+    }
+
+    const newProgram = {
+      ...program,
+      days: program.days.map((day) => {
+        if (day._id !== dayId) return day
+        return {
+          ...day,
+          rows: [...day.rows, newRow],
+        }
+      }),
+    }
+
+    localStore.setQuery(api.programs.getProgram, { programId }, newProgram)
+  })
+
+  const batchDeleteRows = useMutation(
+    api.programRows.batchDeleteRows,
+  ).withOptimisticUpdate((localStore, args) => {
+    const program = localStore.getQuery(api.programs.getProgram, { programId })
+    if (!program) return
+
+    const rowIdsToDelete = new Set(args.rowIds)
+
+    const newProgram = {
+      ...program,
+      days: program.days.map((day) => {
+        if (day._id !== dayId) return day
+        return {
+          ...day,
+          rows: day.rows.filter((row) => !rowIdsToDelete.has(row._id)),
+        }
+      }),
+    }
+
+    localStore.setQuery(api.programs.getProgram, { programId }, newProgram)
+  })
+
   const batchUpdateRows = useMutation(
     api.programRows.batchUpdateRows,
   ).withOptimisticUpdate((localStore, args) => {
@@ -285,10 +341,35 @@ function DayGrid({
     [batchUpdateRows],
   )
 
+  const onRowAdd = useCallback(() => {
+    // Fire-and-forget: don't await so focus happens immediately.
+    // Optimistic update shows the row instantly; if mutation fails,
+    // Convex rolls back automatically.
+    addEmptyRow({ dayId })
+    return {
+      rowIndex: rows.length,
+      columnId: 'exercise',
+    }
+  }, [addEmptyRow, dayId, rows.length])
+
+  const onRowsDelete = useCallback(
+    (rowsToDelete: ExerciseRow[]) => {
+      // Fire-and-forget: don't await so grid can immediately
+      // refocus to adjacent row. Optimistic update removes rows
+      // instantly; Convex rolls back if mutation fails.
+      const rowIds = rowsToDelete.map((row) => row._id)
+      batchDeleteRows({ rowIds })
+    },
+    [batchDeleteRows],
+  )
+
   const dataGrid = useDataGrid({
     data: rows,
     columns,
     onDataChange: handleDataChange,
+    onRowAdd,
+    onRowsDelete,
+    getRowId: (row) => row._id,
   })
 
   return (
