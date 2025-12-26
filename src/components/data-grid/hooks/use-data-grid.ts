@@ -16,10 +16,6 @@ import {
 import { useVirtualizer, type Virtualizer } from '@tanstack/react-virtual'
 import * as React from 'react'
 import { toast } from 'sonner'
-
-import { useAsRef } from '@/hooks/use-as-ref'
-import { useIsomorphicLayoutEffect } from '@/hooks/use-isomorphic-layout-effect'
-import { useLazyRef } from '@/hooks/use-lazy-ref'
 import {
   getCellKey,
   getIsFileCellData,
@@ -42,6 +38,9 @@ import type {
   SelectionState,
   UpdateCell,
 } from '@/components/data-grid/types/data-grid'
+import { useAsRef } from '@/hooks/use-as-ref'
+import { useIsomorphicLayoutEffect } from '@/hooks/use-isomorphic-layout-effect'
+import { useLazyRef } from '@/hooks/use-lazy-ref'
 
 const DEFAULT_ROW_HEIGHT = 'short'
 const OVERSCAN = 6
@@ -2352,6 +2351,7 @@ function useDataGrid<TData>({
 
   const onDataGridKeyDown = React.useCallback(
     (event: KeyboardEvent) => {
+      console.log('GRID ONKEYDOWN')
       const currentState = store.getState()
       const { key, ctrlKey, metaKey, shiftKey, altKey } = event
       const isCtrlPressed = ctrlKey || metaKey
@@ -2390,6 +2390,16 @@ function useDataGrid<TData>({
       }
 
       if (currentState.editingCell) {
+        // Skip grid keyboard handling if event originated from a cell editor
+        // (e.g. combobox input/popup). This allows editors like Base UI's Combobox
+        // to handle Enter/Escape/Arrow keys for item selection without the grid
+        // intercepting and moving focus to the next row.
+        // Elements opt-in by adding the `data-grid-cell-editor` attribute.
+        const target = event.target as HTMLElement
+        if (target?.closest('[data-grid-cell-editor]')) {
+          return
+        }
+
         if (key === 'Escape') {
           event.preventDefault()
           onCellEditingStop()

@@ -46,7 +46,6 @@ export function ProgramGrid({ programId }: { programId: Id<'programs'> }) {
       }
     })
   }, [program])
-  console.log(daysWithGridData)
 
   const options = useMemo(() => {
     return exercises

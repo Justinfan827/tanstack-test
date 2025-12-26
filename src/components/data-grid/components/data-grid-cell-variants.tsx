@@ -1090,13 +1090,14 @@ export function ComboboxCell<TData>({
           }
         >
           <BaseUICombobox.Input
+            data-grid-cell-editor=""
             className="size-full overflow-hidden outline-none whitespace-nowrap debug"
             ref={triggerRef}
           />
           <ComboboxContent
+            data-grid-cell-editor=""
             anchor={triggerRef}
             className="w-[230px]"
-            side="bottom"
             sideOffset={8}
             align="start"
             alignOffset={-8}
