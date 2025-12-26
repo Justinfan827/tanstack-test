@@ -4,7 +4,7 @@ import {
   useUIMessages,
 } from '@convex-dev/agent/react'
 import { useForm } from '@tanstack/react-form'
-import { createFileRoute } from '@tanstack/react-router'
+import { createFileRoute, useNavigate } from '@tanstack/react-router'
 import {
   Authenticated,
   AuthLoading,
@@ -12,8 +12,8 @@ import {
   useMutation,
   useQuery,
 } from 'convex/react'
-import { Loader2, MessageSquarePlus, Plus, Send } from 'lucide-react'
-import { useEffect, useRef, useState } from 'react'
+import { Loader2, MessageSquarePlus, Plus, Trash2 } from 'lucide-react'
+import { useRef, useState } from 'react'
 import { toast } from 'sonner'
 import { Streamdown } from 'streamdown'
 import { z } from 'zod'
@@ -35,7 +35,13 @@ import { api } from '../../convex/_generated/api'
 import { Id } from '../../convex/_generated/dataModel'
 import { ProgramGrid } from '@/features/programstudio/program-grid'
 
+const adminSearchSchema = z.object({
+  threadId: z.string().optional(),
+  programId: z.string().optional(),
+})
+
 export const Route = createFileRoute('/admin')({
+  validateSearch: adminSearchSchema,
   component: RouteComponent,
 })
 
@@ -162,7 +168,19 @@ function RouteComponent() {
 
 const AuthenticatedPage = () => {
   const user = useQuery(api.users.getCurrentUser)
-  const [threadId, setThreadId] = useState<string | null>(null)
+  const navigate = useNavigate({ from: '/admin' })
+  const threadId = Route.useSearch({
+    select: (search) => search.threadId ?? null,
+  })
+
+  const setThreadId = (id: string | null) => {
+    navigate({
+      search: (prev) => ({
+        ...prev,
+        threadId: id ?? undefined,
+      }),
+    })
+  }
 
   return (
     <Authenticated>
@@ -195,7 +213,19 @@ const AuthenticatedPage = () => {
 
 
 function ProgramsSection() {
-  const [selectedProgramId, setSelectedProgramId] = useState<Id<'programs'> | null>(null)
+  const navigate = useNavigate({ from: '/admin' })
+  const selectedProgramId = Route.useSearch({
+    select: (search) => (search.programId as Id<'programs'> | undefined) ?? null,
+  })
+
+  const setSelectedProgramId = (id: Id<'programs'> | null) => {
+    navigate({
+      search: (prev) => ({
+        ...prev,
+        programId: id ?? undefined,
+      }),
+    })
+  }
 
   return (
     <div className="flex rounded-lg border">
@@ -232,6 +262,7 @@ function ProgramsSidebar({
   const inputRef = useRef<HTMLInputElement>(null)
   const programs = useQuery(api.programs.listUserPrograms)
   const createProgram = useMutation(api.programs.createProgram)
+  const deleteProgram = useMutation(api.programs.deleteProgram)
 
   const handleCreate = async () => {
     if (!programName.trim()) {
@@ -246,6 +277,23 @@ function ProgramsSidebar({
     } catch (error) {
       toast.error(`Failed to create program: ${error}`)
       console.error('Failed to create program:', error)
+    }
+  }
+
+  const handleDelete = async (e: React.MouseEvent, programId: Id<'programs'>) => {
+    e.stopPropagation()
+    if (!confirm(`Are you sure you want to delete "${programs?.find(p => p._id === programId)?.name}"?`)) {
+      return
+    }
+    try {
+      await deleteProgram({ programId })
+      toast.success('Program deleted successfully')
+      if (selectedProgramId === programId) {
+        setSelectedProgramId(null)
+      }
+    } catch (error) {
+      toast.error(`Failed to delete program: ${error}`)
+      console.error('Failed to delete program:', error)
     }
   }
 
@@ -288,21 +336,39 @@ function ProgramsSidebar({
             <p className="text-muted-foreground text-sm">No programs yet</p>
           ) : (
             programs.map((program: { _id: Id<'programs'>; name: string; dayCount: number }) => (
-              <button
-                type="button"
+              <div
                 key={program._id}
-                onClick={() => setSelectedProgramId(program._id)}
-                className={`w-full text-left text-sm px-2 py-1.5 rounded-md transition-colors truncate ${
+                className={`group flex items-center gap-2 w-full text-left text-sm px-2 py-1.5 rounded-md transition-colors ${
                   selectedProgramId === program._id
                     ? 'bg-primary text-primary-foreground'
                     : 'hover:bg-muted'
                 }`}
               >
-                <div className="font-medium truncate">{program.name}</div>
-                <div className="text-xs opacity-80">
-                  {program.dayCount} {program.dayCount === 1 ? 'day' : 'days'}
-                </div>
-              </button>
+                <button
+                  type="button"
+                  onClick={() => setSelectedProgramId(program._id)}
+                  className="flex-1 min-w-0 text-left"
+                >
+                  <div className="font-medium truncate">{program.name}</div>
+                  <div className="text-xs opacity-80">
+                    {program.dayCount} {program.dayCount === 1 ? 'day' : 'days'}
+                  </div>
+                </button>
+                <Button
+                  type="button"
+                  size="icon"
+                  variant="ghost"
+                  onClick={(e) => handleDelete(e, program._id)}
+                  className={`h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity ${
+                    selectedProgramId === program._id
+                      ? 'hover:bg-primary-foreground/20'
+                      : ''
+                  }`}
+                  title="Delete program"
+                >
+                  <Trash2 size={14} />
+                </Button>
+              </div>
             ))
           )}
         </div>
@@ -396,7 +462,6 @@ function ChatPanel({
 }) {
   const [input, setInput] = useState('')
   const [isLoading, setIsLoading] = useState(false)
-  const messagesEndRef = useRef<HTMLDivElement>(null)
 
   const createThread = useMutation(api.chat.createNewThread)
   const sendMessage = useMutation(api.chat.sendMessage)
@@ -406,10 +471,6 @@ function ChatPanel({
     threadId ? { threadId } : 'skip',
     { initialNumItems: 50, stream: true },
   )
-
-  useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
-  }, [messages])
 
   const hasStreamingMessage = messages?.some(
     (m: UIMessage) => m.status === 'streaming',
@@ -475,10 +536,8 @@ function ChatPanel({
               </div>
             </div>
           )}
-          <div ref={messagesEndRef} />
         </div>
       </ScrollArea>
-
       <form
         onSubmit={handleSubmit}
         className="flex items-center gap-2 p-4 border-t"
@@ -487,19 +546,21 @@ function ChatPanel({
           name="prompt"
           value={input}
           onChange={(e) => setInput(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' && !e.shiftKey) {
+              e.preventDefault()
+              const form = e.currentTarget.form
+              if (form) {
+                form.requestSubmit()
+              }
+            }
+          }}
           placeholder="Type your message..."
           className="flex-1"
           autoComplete="off"
           autoFocus
           disabled={isLoading}
         />
-        <Button type="submit" size="icon" disabled={isLoading || !input.trim()}>
-          {isLoading ? (
-            <Loader2 className="h-4 w-4 animate-spin" />
-          ) : (
-            <Send size={18} />
-          )}
-        </Button>
       </form>
     </div>
   )
