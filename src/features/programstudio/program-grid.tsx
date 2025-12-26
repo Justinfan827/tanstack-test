@@ -13,6 +13,8 @@ export type ExerciseRow = {
   weight: string
   reps: string
   sets: string
+  effort: string
+  rest: string
   notes: string
 }
 
@@ -31,14 +33,19 @@ export function ProgramGrid({ programId }: { programId: Id<'programs'> }) {
           (row): row is Extract<typeof row, { kind: 'exercise' }> =>
             row.kind === 'exercise',
         )
-        .map((row) => ({
-          _id: row._id,
-          libraryExerciseId: row.libraryExerciseId,
-          weight: row.weight,
-          reps: row.reps,
-          sets: row.sets,
-          notes: row.notes,
-        }))
+        .map(
+          (row) =>
+            ({
+              _id: row._id,
+              libraryExerciseId: row.libraryExerciseId,
+              weight: row.weight,
+              reps: row.reps,
+              sets: row.sets,
+              effort: row.effort ?? '',
+              rest: row.rest ?? '',
+              notes: row.notes,
+            }) satisfies ExerciseRow,
+        )
 
       return {
         day,
@@ -94,6 +101,28 @@ export function ProgramGrid({ programId }: { programId: Id<'programs'> }) {
         id: 'sets',
         accessorKey: 'sets',
         header: 'Sets',
+        meta: {
+          cell: {
+            variant: 'short-text',
+          },
+        },
+        minSize: 100,
+      },
+      {
+        id: 'effort',
+        accessorKey: 'effort',
+        header: 'RIR/RPE',
+        meta: {
+          cell: {
+            variant: 'short-text',
+          },
+        },
+        minSize: 100,
+      },
+      {
+        id: 'rest',
+        accessorKey: 'rest',
+        header: 'Rest',
         meta: {
           cell: {
             variant: 'short-text',
@@ -185,6 +214,8 @@ function DayGrid({
       weight: '',
       reps: '',
       sets: '',
+      effort: undefined,
+      rest: undefined,
       notes: '',
       groupId: undefined,
     }
@@ -285,6 +316,8 @@ function DayGrid({
           weight?: string
           reps?: string
           sets?: string
+          effort?: string
+          rest?: string
           notes?: string
         }
       }> = []
@@ -299,6 +332,8 @@ function DayGrid({
           weight?: string
           reps?: string
           sets?: string
+          effort?: string
+          rest?: string
           notes?: string
         } = {}
         if (newRow.libraryExerciseId !== oldRow.libraryExerciseId) {
@@ -312,6 +347,12 @@ function DayGrid({
         }
         if (newRow.sets !== oldRow.sets) {
           fields.sets = newRow.sets
+        }
+        if (newRow.effort !== oldRow.effort) {
+          fields.effort = newRow.effort
+        }
+        if (newRow.rest !== oldRow.rest) {
+          fields.rest = newRow.rest
         }
         if (newRow.notes !== oldRow.notes) {
           fields.notes = newRow.notes

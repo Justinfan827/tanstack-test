@@ -150,6 +150,8 @@ export const batchUpdateRows = mutation({
           weight: v.optional(v.string()),
           reps: v.optional(v.string()),
           sets: v.optional(v.string()),
+          effort: v.optional(v.string()),
+          rest: v.optional(v.string()),
           notes: v.optional(v.string()),
         }),
       }),

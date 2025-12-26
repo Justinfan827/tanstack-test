@@ -2160,6 +2160,7 @@ function useDataGrid<TData>({
       onColumnFiltersChange,
       columnResizeMode: 'onChange',
       columnResizeDirection: dir,
+      enableSorting: false,
       getCoreRowModel: getMemoizedCoreRowModel,
       getFilteredRowModel: getMemoizedFilteredRowModel,
       getSortedRowModel: getMemoizedSortedRowModel,
