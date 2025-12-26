@@ -1,8 +1,3 @@
-import {
-  type UIMessage,
-  useSmoothText,
-  useUIMessages,
-} from '@convex-dev/agent/react'
 import { useForm } from '@tanstack/react-form'
 import { createFileRoute, useNavigate } from '@tanstack/react-router'
 import {
@@ -12,11 +7,11 @@ import {
   useMutation,
   useQuery,
 } from 'convex/react'
-import { Loader2, MessageSquarePlus, Plus, Trash2 } from 'lucide-react'
+import { MessageSquarePlus, Plus, Trash2 } from 'lucide-react'
 import { useRef, useState } from 'react'
 import { toast } from 'sonner'
-import { Streamdown } from 'streamdown'
 import { z } from 'zod'
+import { ChatPanel } from '@/components/chat/ChatPanel'
 import { SignOutButton } from '@/components/SignOutButton'
 import { Button } from '@/components/ui/button'
 import { ScrollArea } from '@/components/ui/scroll-area'
@@ -377,19 +372,6 @@ function ProgramsSidebar({
   )
 }
 
-function MessageContent({
-  text,
-  isStreaming,
-}: {
-  text: string
-  isStreaming: boolean
-}) {
-  const [visibleText] = useSmoothText(text, {
-    startStreaming: isStreaming,
-  })
-  return <Streamdown className="px-4">{visibleText}</Streamdown>
-}
-
 function ThreadSelector({
   threadId,
   setThreadId,
@@ -449,119 +431,6 @@ function ThreadSelector({
           ))}
         </div>
       </ScrollArea>
-    </div>
-  )
-}
-
-function ChatPanel({
-  threadId,
-  setThreadId,
-}: {
-  threadId: string | null
-  setThreadId: (id: string | null) => void
-}) {
-  const [input, setInput] = useState('')
-  const [isLoading, setIsLoading] = useState(false)
-
-  const createThread = useMutation(api.chat.createNewThread)
-  const sendMessage = useMutation(api.chat.sendMessage)
-
-  const { results: messages } = useUIMessages(
-    api.chat.listMessages,
-    threadId ? { threadId } : 'skip',
-    { initialNumItems: 50, stream: true },
-  )
-
-  const hasStreamingMessage = messages?.some(
-    (m: UIMessage) => m.status === 'streaming',
-  )
-
-  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault()
-    const text = input.trim()
-    if (!text || isLoading) return
-
-    setIsLoading(true)
-    setInput('')
-
-    try {
-      let currentThreadId = threadId
-      if (!currentThreadId) {
-        currentThreadId = await createThread()
-        setThreadId(currentThreadId)
-      }
-
-      await sendMessage({ threadId: currentThreadId, prompt: text })
-    } catch (error) {
-      console.error('Failed to send message:', error)
-    } finally {
-      setIsLoading(false)
-    }
-  }
-
-  return (
-    <div className="flex flex-col">
-      <ScrollArea className="h-[650px] p-4">
-        <div className="space-y-4 pb-4">
-          {!messages || messages.length === 0 ? (
-            <div className="text-center text-muted-foreground mt-8">
-              Ask me anything to get started!
-            </div>
-          ) : (
-            messages.map((message: UIMessage) => (
-              <div
-                key={message.key}
-                className={`p-3 rounded-lg ${
-                  message.role === 'user'
-                    ? 'bg-primary/10 ml-8'
-                    : 'bg-secondary/20 mr-8'
-                }`}
-              >
-                <p className="text-sm font-semibold mb-1">
-                  {message.role === 'user' ? 'You' : 'AI Assistant'}
-                </p>
-                <MessageContent
-                  text={message.text ?? ''}
-                  isStreaming={message.status === 'streaming'}
-                />
-              </div>
-            ))
-          )}
-          {isLoading && !hasStreamingMessage && (
-            <div className="p-3 rounded-lg bg-secondary/20 mr-8">
-              <p className="text-sm font-semibold mb-1">AI Assistant</p>
-              <div className="flex items-center gap-2 text-muted-foreground">
-                <Loader2 className="h-4 w-4 animate-spin" />
-                <span>Thinking...</span>
-              </div>
-            </div>
-          )}
-        </div>
-      </ScrollArea>
-      <form
-        onSubmit={handleSubmit}
-        className="flex items-center gap-2 p-4 border-t"
-      >
-        <Input
-          name="prompt"
-          value={input}
-          onChange={(e) => setInput(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter' && !e.shiftKey) {
-              e.preventDefault()
-              const form = e.currentTarget.form
-              if (form) {
-                form.requestSubmit()
-              }
-            }
-          }}
-          placeholder="Type your message..."
-          className="flex-1"
-          autoComplete="off"
-          autoFocus
-          disabled={isLoading}
-        />
-      </form>
     </div>
   )
 }

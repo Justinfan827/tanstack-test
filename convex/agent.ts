@@ -5,7 +5,7 @@ import { workoutProgramTools } from "./tools";
 
 export const workoutAgent = new Agent(components.agent, {
   name: "Workout Program Assistant",
-  languageModel: openai.chat("gpt-4o"),
+  languageModel: openai.chat("gpt-4.1-mini"),
   instructions: `You are a workout program assistant that helps users create and edit their workout programs.
 
 You have access to tools to:

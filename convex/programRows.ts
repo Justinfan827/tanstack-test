@@ -117,6 +117,7 @@ export const batchUpdateRows = mutation({
       v.object({
         rowId: v.id("programRows"),
         fields: v.object({
+          libraryExerciseId: v.optional(v.id("exerciseLibrary")),
           weight: v.optional(v.string()),
           reps: v.optional(v.string()),
           sets: v.optional(v.string()),
@@ -135,6 +136,18 @@ export const batchUpdateRows = mutation({
     for (const update of args.updates) {
       const { row } = await verifyRowOwnership(ctx, update.rowId, userId);
       if (row.kind !== "exercise") continue;
+
+      // Validate libraryExerciseId if being updated
+      if (update.fields.libraryExerciseId !== undefined) {
+        const exercise = await ctx.db.get(update.fields.libraryExerciseId);
+        if (!exercise) {
+          throw new Error("Exercise not found in library");
+        }
+        if (exercise.userId !== undefined && exercise.userId !== userId) {
+          throw new Error("Not authorized to use this exercise");
+        }
+      }
+
       await ctx.db.patch(update.rowId, update.fields);
     }
     return null;

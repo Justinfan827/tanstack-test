@@ -1,17 +1,17 @@
 'use client'
 
-import { Loader2 } from 'lucide-react'
-import { useCallback, useEffect, useMemo, useRef } from 'react'
 import type { ColumnDef } from '@tanstack/react-table'
 import { useMutation, useQuery } from 'convex/react'
+import { Loader2 } from 'lucide-react'
+import { useCallback, useEffect, useMemo, useRef } from 'react'
 import { DataGrid } from '@/components/data-grid/components/data-grid'
 import { useDataGrid } from '@/components/data-grid/hooks/use-data-grid'
 import { api } from '../../../convex/_generated/api'
-import { Id } from '../../../convex/_generated/dataModel'
+import type { Id } from '../../../convex/_generated/dataModel'
 
 export type ExerciseRow = {
   _id: Id<'programRows'>
-  exerciseName: string
+  libraryExerciseId: Id<'exerciseLibrary'>
   weight: string
   reps: string
   sets: string
@@ -22,23 +22,20 @@ export function ProgramGrid({ programId }: { programId: Id<'programs'> }) {
   const program = useQuery(api.programs.getProgram, { programId })
   const exercises = useQuery(api.exerciseLibrary.listExercises)
 
-  // Create exercise name map
-  const exerciseMap = useMemo(() => {
-    if (!exercises) return new Map<Id<'exerciseLibrary'>, string>()
-    return new Map(exercises.map((e) => [e._id, e.name]))
-  }, [exercises])
-
   // Transform program data into grid rows for each day
   const daysWithGridData = useMemo(() => {
-    if (!program || !exerciseMap.size) return []
+    if (!program) return []
 
     return program.days.map((day) => {
       // Filter to exercise rows only and transform
       const exerciseRows: ExerciseRow[] = day.rows
-        .filter((row): row is Extract<typeof row, { kind: 'exercise' }> => row.kind === 'exercise')
+        .filter(
+          (row): row is Extract<typeof row, { kind: 'exercise' }> =>
+            row.kind === 'exercise',
+        )
         .map((row) => ({
           _id: row._id,
-          exerciseName: exerciseMap.get(row.libraryExerciseId) || 'Unknown',
+          libraryExerciseId: row.libraryExerciseId,
           weight: row.weight,
           reps: row.reps,
           sets: row.sets,
@@ -50,7 +47,8 @@ export function ProgramGrid({ programId }: { programId: Id<'programs'> }) {
         rows: exerciseRows,
       }
     })
-  }, [program, exerciseMap])
+  }, [program])
+  console.log(daysWithGridData)
 
   const options = useMemo(() => {
     return exercises
@@ -173,16 +171,14 @@ function DayGrid({
   columns: ColumnDef<ExerciseRow>[]
 }) {
   const batchUpdateRows = useMutation(
-    api.programRows.batchUpdateRows
+    api.programRows.batchUpdateRows,
   ).withOptimisticUpdate((localStore, args) => {
     // Get current program data
     const program = localStore.getQuery(api.programs.getProgram, { programId })
     if (!program) return
 
     // Build a map of updates by rowId
-    const updatesMap = new Map(
-      args.updates.map((u) => [u.rowId, u.fields])
-    )
+    const updatesMap = new Map(args.updates.map((u) => [u.rowId, u.fields]))
 
     // Create new program with updated rows
     const newProgram = {
@@ -229,7 +225,13 @@ function DayGrid({
 
       const updates: Array<{
         rowId: Id<'programRows'>
-        fields: { weight?: string; reps?: string; sets?: string; notes?: string }
+        fields: {
+          libraryExerciseId?: Id<'exerciseLibrary'>
+          weight?: string
+          reps?: string
+          sets?: string
+          notes?: string
+        }
       }> = []
 
       for (const newRow of newData) {
@@ -237,7 +239,16 @@ function DayGrid({
         if (!oldRow) continue
 
         // Collect all changed fields for this row
-        const fields: Record<string, string> = {}
+        const fields: {
+          libraryExerciseId?: Id<'exerciseLibrary'>
+          weight?: string
+          reps?: string
+          sets?: string
+          notes?: string
+        } = {}
+        if (newRow.libraryExerciseId !== oldRow.libraryExerciseId) {
+          fields.libraryExerciseId = newRow.libraryExerciseId
+        }
         if (newRow.weight !== oldRow.weight) {
           fields.weight = newRow.weight
         }
@@ -251,7 +262,7 @@ function DayGrid({
           fields.notes = newRow.notes
         }
 
-        // Only add update if there are changes (exerciseName is read-only, so skip it)
+        // Only add update if there are changes
         if (Object.keys(fields).length > 0) {
           updates.push({ rowId: newRow._id, fields })
         }
@@ -260,7 +271,7 @@ function DayGrid({
       // Batch all updates in a single mutation call
       // Optimistic update will immediately update UI via localStore.setQuery
       if (updates.length > 0) {
-        console.log("batching updates", JSON.stringify(updates, null, 2))
+        console.log('batching updates', JSON.stringify(updates, null, 2))
         batchUpdateRows({ updates })
       }
 
@@ -287,4 +298,3 @@ function DayGrid({
     </div>
   )
 }
-
