@@ -46,6 +46,7 @@ export function ChatPanel({
     optimisticallySendMessage(api.chat.listMessages),
   )
 
+  // TODO: pagination for going backwards for infinite scroll
   const { results: messages } = useUIMessages(
     api.chat.listMessages,
     threadId ? { threadId } : 'skip',
