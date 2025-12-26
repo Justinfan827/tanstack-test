@@ -206,11 +206,11 @@ const AuthenticatedPage = () => {
   )
 }
 
-
 function ProgramsSection() {
   const navigate = useNavigate({ from: '/admin' })
   const selectedProgramId = Route.useSearch({
-    select: (search) => (search.programId as Id<'programs'> | undefined) ?? null,
+    select: (search) =>
+      (search.programId as Id<'programs'> | undefined) ?? null,
   })
 
   const setSelectedProgramId = (id: Id<'programs'> | null) => {
@@ -275,9 +275,16 @@ function ProgramsSidebar({
     }
   }
 
-  const handleDelete = async (e: React.MouseEvent, programId: Id<'programs'>) => {
+  const handleDelete = async (
+    e: React.MouseEvent,
+    programId: Id<'programs'>,
+  ) => {
     e.stopPropagation()
-    if (!confirm(`Are you sure you want to delete "${programs?.find(p => p._id === programId)?.name}"?`)) {
+    if (
+      !confirm(
+        `Are you sure you want to delete "${programs?.find((p) => p._id === programId)?.name}"?`,
+      )
+    ) {
       return
     }
     try {
@@ -330,41 +337,48 @@ function ProgramsSidebar({
           ) : programs.length === 0 ? (
             <p className="text-muted-foreground text-sm">No programs yet</p>
           ) : (
-            programs.map((program: { _id: Id<'programs'>; name: string; dayCount: number }) => (
-              <div
-                key={program._id}
-                className={`group flex items-center gap-2 w-full text-left text-sm px-2 py-1.5 rounded-md transition-colors ${
-                  selectedProgramId === program._id
-                    ? 'bg-primary text-primary-foreground'
-                    : 'hover:bg-muted'
-                }`}
-              >
-                <button
-                  type="button"
-                  onClick={() => setSelectedProgramId(program._id)}
-                  className="flex-1 min-w-0 text-left"
-                >
-                  <div className="font-medium truncate">{program.name}</div>
-                  <div className="text-xs opacity-80">
-                    {program.dayCount} {program.dayCount === 1 ? 'day' : 'days'}
-                  </div>
-                </button>
-                <Button
-                  type="button"
-                  size="icon"
-                  variant="ghost"
-                  onClick={(e) => handleDelete(e, program._id)}
-                  className={`h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity ${
+            programs.map(
+              (program: {
+                _id: Id<'programs'>
+                name: string
+                dayCount: number
+              }) => (
+                <div
+                  key={program._id}
+                  className={`group flex items-center gap-2 w-full text-left text-sm px-2 py-1.5 rounded-md transition-colors ${
                     selectedProgramId === program._id
-                      ? 'hover:bg-primary-foreground/20'
-                      : ''
+                      ? 'bg-primary text-primary-foreground'
+                      : 'hover:bg-muted'
                   }`}
-                  title="Delete program"
                 >
-                  <Trash2 size={14} />
-                </Button>
-              </div>
-            ))
+                  <button
+                    type="button"
+                    onClick={() => setSelectedProgramId(program._id)}
+                    className="flex-1 min-w-0 text-left"
+                  >
+                    <div className="font-medium truncate">{program.name}</div>
+                    <div className="text-xs opacity-80">
+                      {program.dayCount}{' '}
+                      {program.dayCount === 1 ? 'day' : 'days'}
+                    </div>
+                  </button>
+                  <Button
+                    type="button"
+                    size="icon"
+                    variant="ghost"
+                    onClick={(e) => handleDelete(e, program._id)}
+                    className={`h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity ${
+                      selectedProgramId === program._id
+                        ? 'hover:bg-primary-foreground/20'
+                        : ''
+                    }`}
+                    title="Delete program"
+                  >
+                    <Trash2 size={14} />
+                  </Button>
+                </div>
+              ),
+            )
           )}
         </div>
       </ScrollArea>

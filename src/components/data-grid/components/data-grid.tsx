@@ -1,26 +1,29 @@
-"use client";
+'use client'
 
-import { Plus } from "lucide-react";
-import * as React from "react";
-import { DataGridColumnHeader } from "@/components/data-grid/components/data-grid-column-header";
-import { DataGridContextMenu } from "@/components/data-grid/components/data-grid-context-menu";
-import { DataGridPasteDialog } from "@/components/data-grid/components/data-grid-paste-dialog";
-import { DataGridRow } from "@/components/data-grid/components/data-grid-row";
-import { DataGridSearch } from "@/components/data-grid/components/data-grid-search";
-import { useAsRef } from "@/hooks/use-as-ref";
-import type { useDataGrid } from "@/components/data-grid/hooks/use-data-grid";
-import { flexRender, getCommonPinningStyles } from "@/components/data-grid/lib/data-grid";
-import { cn } from "@/lib/utils";
-import type { Direction } from "@/components/data-grid/types/data-grid";
+import { Plus } from 'lucide-react'
+import * as React from 'react'
+import { DataGridColumnHeader } from '@/components/data-grid/components/data-grid-column-header'
+import { DataGridContextMenu } from '@/components/data-grid/components/data-grid-context-menu'
+import { DataGridPasteDialog } from '@/components/data-grid/components/data-grid-paste-dialog'
+import { DataGridRow } from '@/components/data-grid/components/data-grid-row'
+import { DataGridSearch } from '@/components/data-grid/components/data-grid-search'
+import { useAsRef } from '@/hooks/use-as-ref'
+import type { useDataGrid } from '@/components/data-grid/hooks/use-data-grid'
+import {
+  flexRender,
+  getCommonPinningStyles,
+} from '@/components/data-grid/lib/data-grid'
+import { cn } from '@/lib/utils'
+import type { Direction } from '@/components/data-grid/types/data-grid'
 
-const EMPTY_CELL_SELECTION_SET = new Set<string>();
+const EMPTY_CELL_SELECTION_SET = new Set<string>()
 
 interface DataGridProps<TData>
-  extends Omit<ReturnType<typeof useDataGrid<TData>>, "dir">,
-    Omit<React.ComponentProps<"div">, "contextMenu"> {
-  dir?: Direction;
-  height?: number;
-  stretchColumns?: boolean;
+  extends Omit<ReturnType<typeof useDataGrid<TData>>, 'dir'>,
+    Omit<React.ComponentProps<'div'>, 'contextMenu'> {
+  dir?: Direction
+  height?: number
+  stretchColumns?: boolean
 }
 
 export function DataGrid<TData>({
@@ -28,7 +31,7 @@ export function DataGrid<TData>({
   headerRef,
   rowMapRef,
   footerRef,
-  dir = "ltr",
+  dir = 'ltr',
   table,
   tableMeta,
   virtualTotalSize,
@@ -51,45 +54,45 @@ export function DataGrid<TData>({
   className,
   ...props
 }: DataGridProps<TData>) {
-  const rows = table.getRowModel().rows;
-  const readOnly = tableMeta?.readOnly ?? false;
-  const columnVisibility = table.getState().columnVisibility;
-  const columnPinning = table.getState().columnPinning;
+  const rows = table.getRowModel().rows
+  const readOnly = tableMeta?.readOnly ?? false
+  const columnVisibility = table.getState().columnVisibility
+  const columnPinning = table.getState().columnPinning
 
-  const onRowAddRef = useAsRef(onRowAddProp);
+  const onRowAddRef = useAsRef(onRowAddProp)
 
   const onRowAdd = React.useCallback(
     (event: React.MouseEvent<HTMLDivElement>) => {
-      onRowAddRef.current?.(event);
+      onRowAddRef.current?.(event)
     },
     [onRowAddRef],
-  );
+  )
 
   const onDataGridContextMenu = React.useCallback(
     (event: React.MouseEvent<HTMLDivElement>) => {
-      event.preventDefault();
+      event.preventDefault()
     },
     [],
-  );
+  )
 
   const onFooterCellKeyDown = React.useCallback(
     (event: React.KeyboardEvent<HTMLDivElement>) => {
-      if (!onRowAddRef.current) return;
+      if (!onRowAddRef.current) return
 
-      if (event.key === "Enter" || event.key === " ") {
-        event.preventDefault();
-        onRowAddRef.current();
+      if (event.key === 'Enter' || event.key === ' ') {
+        event.preventDefault()
+        onRowAddRef.current()
       }
     },
     [onRowAddRef],
-  );
+  )
 
   return (
     <div
       data-slot="grid-wrapper"
       dir={dir}
       {...props}
-      className={cn("relative flex w-full flex-col", className)}
+      className={cn('relative flex w-full flex-col', className)}
     >
       {searchState && <DataGridSearch {...searchState} />}
       <DataGridContextMenu
@@ -129,11 +132,11 @@ export function DataGrid<TData>({
               className="flex w-full"
             >
               {headerGroup.headers.map((header, colIndex) => {
-                const sorting = table.getState().sorting;
+                const sorting = table.getState().sorting
                 const currentSort = sorting.find(
                   (sort) => sort.id === header.column.id,
-                );
-                const isSortable = header.column.getCanSort();
+                )
+                const isSortable = header.column.getCanSort()
 
                 return (
                   <div
@@ -142,18 +145,18 @@ export function DataGrid<TData>({
                     aria-colindex={colIndex + 1}
                     aria-sort={
                       currentSort?.desc === false
-                        ? "ascending"
+                        ? 'ascending'
                         : currentSort?.desc === true
-                          ? "descending"
+                          ? 'descending'
                           : isSortable
-                            ? "none"
+                            ? 'none'
                             : undefined
                     }
                     data-slot="grid-header-cell"
                     tabIndex={-1}
-                    className={cn("relative", {
-                      grow: stretchColumns && header.column.id !== "select",
-                      "border-e": header.column.id !== "select",
+                    className={cn('relative', {
+                      grow: stretchColumns && header.column.id !== 'select',
+                      'border-e': header.column.id !== 'select',
                     })}
                     style={{
                       ...getCommonPinningStyles({ column: header.column, dir }),
@@ -161,7 +164,7 @@ export function DataGrid<TData>({
                     }}
                   >
                     {header.isPlaceholder ? null : typeof header.column
-                        .columnDef.header === "function" ? (
+                        .columnDef.header === 'function' ? (
                       <div className="size-full px-3 py-1.5">
                         {flexRender(
                           header.column.columnDef.header,
@@ -172,7 +175,7 @@ export function DataGrid<TData>({
                       <DataGridColumnHeader header={header} table={table} />
                     )}
                   </div>
-                );
+                )
               })}
             </div>
           ))}
@@ -183,21 +186,21 @@ export function DataGrid<TData>({
           className="relative grid"
           style={{
             height: `${virtualTotalSize}px`,
-            contain: "strict",
+            contain: 'strict',
           }}
         >
           {virtualItems.map((virtualItem) => {
-            const row = rows[virtualItem.index];
-            if (!row) return null;
+            const row = rows[virtualItem.index]
+            if (!row) return null
 
             const cellSelectionKeys =
               cellSelectionMap?.get(virtualItem.index) ??
-              EMPTY_CELL_SELECTION_SET;
+              EMPTY_CELL_SELECTION_SET
 
             const searchMatchColumns =
-              searchMatchesByRow?.get(virtualItem.index) ?? null;
+              searchMatchesByRow?.get(virtualItem.index) ?? null
             const isActiveSearchRow =
-              activeSearchMatch?.rowIndex === virtualItem.index;
+              activeSearchMatch?.rowIndex === virtualItem.index
 
             return (
               <DataGridRow
@@ -219,7 +222,7 @@ export function DataGrid<TData>({
                 readOnly={readOnly}
                 stretchColumns={stretchColumns}
               />
-            );
+            )
           })}
         </div>
         {!readOnly && onRowAdd && (
@@ -257,5 +260,5 @@ export function DataGrid<TData>({
         )}
       </div>
     </div>
-  );
+  )
 }
