@@ -1,0 +1,124 @@
+import * as React from 'react'
+import { DataGridCellWrapper } from '@/components/data-grid/components/data-grid-cell-wrapper'
+import type { DataGridCellProps } from '@/components/data-grid/types/data-grid'
+import { Calendar } from '@/components/ui/calendar'
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui/popover'
+
+function formatDateForDisplay(dateStr: string) {
+  if (!dateStr) return ''
+  const date = new Date(dateStr)
+  return date.toLocaleDateString()
+}
+
+export function DateCell<TData>({
+  cell,
+  tableMeta,
+  rowIndex,
+  columnId,
+  rowHeight,
+  isFocused,
+  isEditing,
+  isSelected,
+  isSearchMatch,
+  isActiveSearchMatch,
+  readOnly,
+}: DataGridCellProps<TData>) {
+  const initialValue = cell.getValue() as string
+  const [value, setValue] = React.useState(initialValue ?? '')
+  const containerRef = React.useRef<HTMLDivElement>(null)
+
+  const prevInitialValueRef = React.useRef(initialValue)
+  if (initialValue !== prevInitialValueRef.current) {
+    prevInitialValueRef.current = initialValue
+    setValue(initialValue ?? '')
+  }
+
+  const selectedDate = value ? new Date(value) : undefined
+
+  const onDateSelect = React.useCallback(
+    (date: Date | undefined) => {
+      if (!date || readOnly) return
+
+      const formattedDate = date.toISOString().split('T')[0] ?? ''
+      setValue(formattedDate)
+      tableMeta?.onDataUpdate?.({ rowIndex, columnId, value: formattedDate })
+      tableMeta?.onCellEditingStop?.()
+    },
+    [tableMeta, rowIndex, columnId, readOnly],
+  )
+
+  const onOpenChange = React.useCallback(
+    (open: boolean) => {
+      if (open && !readOnly) {
+        tableMeta?.onCellEditingStart?.(rowIndex, columnId)
+      } else {
+        tableMeta?.onCellEditingStop?.()
+      }
+    },
+    [tableMeta, rowIndex, columnId, readOnly],
+  )
+
+  const onWrapperKeyDown = React.useCallback(
+    (event: React.KeyboardEvent<HTMLDivElement>) => {
+      if (isEditing && event.key === 'Escape') {
+        event.preventDefault()
+        setValue(initialValue)
+        tableMeta?.onCellEditingStop?.()
+      } else if (!isEditing && isFocused && event.key === 'Tab') {
+        event.preventDefault()
+        tableMeta?.onCellEditingStop?.({
+          direction: event.shiftKey ? 'left' : 'right',
+        })
+      }
+    },
+    [isEditing, isFocused, initialValue, tableMeta],
+  )
+
+  return (
+    <DataGridCellWrapper<TData>
+      ref={containerRef}
+      cell={cell}
+      tableMeta={tableMeta}
+      rowIndex={rowIndex}
+      columnId={columnId}
+      rowHeight={rowHeight}
+      isEditing={isEditing}
+      isFocused={isFocused}
+      isSelected={isSelected}
+      isSearchMatch={isSearchMatch}
+      isActiveSearchMatch={isActiveSearchMatch}
+      readOnly={readOnly}
+      onKeyDown={onWrapperKeyDown}
+    >
+      <Popover open={isEditing} onOpenChange={onOpenChange}>
+        <PopoverTrigger
+          render={<span data-slot="grid-cell-content" />}
+          nativeButton={false}
+        >
+          {formatDateForDisplay(value)}
+        </PopoverTrigger>
+        {isEditing && (
+          <PopoverContent
+            data-grid-cell-editor=""
+            align="start"
+            alignOffset={-8}
+            className="w-auto p-0"
+          >
+            <Calendar
+              autoFocus
+              captionLayout="dropdown"
+              mode="single"
+              defaultMonth={selectedDate ?? new Date()}
+              selected={selectedDate}
+              onSelect={onDateSelect}
+            />
+          </PopoverContent>
+        )}
+      </Popover>
+    </DataGridCellWrapper>
+  )
+}

@@ -2,18 +2,16 @@
 
 import * as React from 'react'
 
-import {
-  CheckboxCell,
-  ComboboxCell,
-  DateCell,
-  FileCell,
-  LongTextCell,
-  MultiSelectCell,
-  NumberCell,
-  SelectCell,
-  ShortTextCell,
-  UrlCell,
-} from '@/components/data-grid/components/data-grid-cell-variants'
+import { CheckboxCell } from '@/components/data-grid/components/cell-variants/checkbox-cell'
+import { ComboboxCell } from '@/components/data-grid/components/cell-variants/combobox-cell'
+import { DateCell } from '@/components/data-grid/components/cell-variants/date-cell'
+import { FileCell } from '@/components/data-grid/components/cell-variants/file-cell'
+import { LongTextCell } from '@/components/data-grid/components/cell-variants/long-text-cell'
+import { MultiSelectCell } from '@/components/data-grid/components/cell-variants/multi-select-cell'
+import { NumberCell } from '@/components/data-grid/components/cell-variants/number-cell'
+import { SelectCell } from '@/components/data-grid/components/cell-variants/select-cell'
+import { ShortTextCell } from '@/components/data-grid/components/cell-variants/short-text-cell'
+import { UrlCell } from '@/components/data-grid/components/cell-variants/url-cell'
 import type { DataGridCellProps } from '@/components/data-grid/types/data-grid'
 
 export const DataGridCell = React.memo(DataGridCellImpl, (prev, next) => {

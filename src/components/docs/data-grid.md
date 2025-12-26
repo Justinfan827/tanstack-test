@@ -38,7 +38,7 @@ Timeline:
 Cell editors opt-in to bypass grid keyboard handling by adding the `data-grid-cell-editor` attribute:
 
 ```tsx
-// ComboboxCell in data-grid-cell-variants.tsx
+// ComboboxCell in cell-variants/combobox-cell.tsx
 <BaseUICombobox.Input
   data-grid-cell-editor=""
   className="..."

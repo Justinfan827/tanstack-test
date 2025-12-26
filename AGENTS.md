@@ -146,7 +146,7 @@ src/
 ## Key Patterns
 
 ### Data Grid
-Custom data grid with virtualization. Cell variants in `data-grid-cell-variants.tsx`.
+Custom data grid with virtualization. Cell variants in `cell-variants/`.
 Uses `useDataGrid` hook for state management.
 
 ### Authentication
