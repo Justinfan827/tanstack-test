@@ -23,6 +23,8 @@ export type RepValue =
   | { type: 'fixed'; value: number }
   | { type: 'range'; min: number; max: number }
   | { type: 'amrap' }
+  | { type: 'time'; seconds: number }
+  | { type: 'timeRange'; minSeconds: number; maxSeconds: number }
 
 export type ParsedReps = {
   values: RepValue[]
