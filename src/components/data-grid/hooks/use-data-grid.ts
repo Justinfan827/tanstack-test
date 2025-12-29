@@ -335,6 +335,7 @@ function useDataGrid<TData>({
 
       const currentTable = tableRef.current
       const currentData = propsRef.current.data
+      console.log('onDataUpdate called', updates, currentData)
       const rows = currentTable?.getRowModel().rows
 
       const rowUpdatesMap = new Map<
@@ -1481,6 +1482,15 @@ function useDataGrid<TData>({
           requestAnimationFrame(() => {
             focusCell(nextRowIndex, columnId)
           })
+        } else {
+          // No next row - refocus current cell wrapper to maintain grid focus.
+          // This is critical: when Enter is pressed on the last row, we must
+          // refocus the wrapper so that the contentEditable's onBlur fires
+          // properly. The onBlur handler in cell variants (e.g., short-text-cell)
+          // is what actually triggers onDataUpdate → onDataChange.
+          // Without this, focus is lost and the blur may not fire correctly,
+          // causing data changes to be silently dropped.
+          focusCellWrapper(rowIndex, columnId)
         }
       } else if (opts?.direction && currentEditing) {
         const { rowIndex, columnId } = currentEditing
@@ -2352,7 +2362,7 @@ function useDataGrid<TData>({
 
   const onDataGridKeyDown = React.useCallback(
     (event: KeyboardEvent) => {
-      console.log('GRID ONKEYDOWN')
+      console.log('GRID ONKEYDOWN', event)
       const currentState = store.getState()
       const { key, ctrlKey, metaKey, shiftKey, altKey } = event
       const isCtrlPressed = ctrlKey || metaKey
