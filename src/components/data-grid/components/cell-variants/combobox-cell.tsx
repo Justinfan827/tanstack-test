@@ -118,7 +118,7 @@ export function ComboboxCell<TData>({
         >
           <BaseUICombobox.Input
             data-grid-cell-editor=""
-            className="size-full overflow-hidden outline-none whitespace-nowrap debug"
+            className="overflow-hidden outline-none whitespace-nowrap"
             ref={triggerRef}
           />
           <ComboboxContent

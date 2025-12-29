@@ -73,7 +73,8 @@ export function ProgramGrid({ programId }: { programId: Id<'programs'> }) {
             options,
           },
         },
-        minSize: 180,
+        minSize: 240,
+        enableResizing: false,
       },
       {
         id: 'weight',
@@ -84,7 +85,7 @@ export function ProgramGrid({ programId }: { programId: Id<'programs'> }) {
             variant: 'short-text',
           },
         },
-        minSize: 100,
+        enableResizing: false,
       },
       {
         id: 'reps',
@@ -95,7 +96,7 @@ export function ProgramGrid({ programId }: { programId: Id<'programs'> }) {
             variant: 'short-text',
           },
         },
-        minSize: 100,
+        enableResizing: false,
       },
       {
         id: 'sets',
@@ -106,7 +107,7 @@ export function ProgramGrid({ programId }: { programId: Id<'programs'> }) {
             variant: 'short-text',
           },
         },
-        minSize: 100,
+        enableResizing: false,
       },
       {
         id: 'effort',
@@ -117,7 +118,7 @@ export function ProgramGrid({ programId }: { programId: Id<'programs'> }) {
             variant: 'short-text',
           },
         },
-        minSize: 100,
+        enableResizing: false,
       },
       {
         id: 'rest',
@@ -128,7 +129,7 @@ export function ProgramGrid({ programId }: { programId: Id<'programs'> }) {
             variant: 'short-text',
           },
         },
-        minSize: 100,
+        enableResizing: false,
       },
       {
         id: 'notes',
@@ -140,6 +141,7 @@ export function ProgramGrid({ programId }: { programId: Id<'programs'> }) {
           },
         },
         minSize: 200,
+        enableResizing: false,
       },
     ],
     [options],
@@ -405,6 +407,9 @@ function DayGrid({
 
   const dataGrid = useDataGrid({
     data: rows,
+    enableSorting: false,
+    enableHiding: true,
+    enablePinning: false,
     columns,
     onDataChange: handleDataChange,
     onRowAdd,
@@ -415,7 +420,7 @@ function DayGrid({
   return (
     <div className="flex flex-col gap-2">
       <h3 className="text-sm font-semibold">{dayLabel}</h3>
-      <DataGrid {...dataGrid} height={400} />
+      <DataGrid {...dataGrid} height={400} stretchColumns />
     </div>
   )
 }

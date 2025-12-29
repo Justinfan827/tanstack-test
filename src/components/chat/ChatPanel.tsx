@@ -74,7 +74,7 @@ export function ChatPanel({
   // while the last assistant message is pending, we shouldn't be able to press 'enter'
   const lastAssistantMessagePending =
     lastMessage &&
-    lastMessage.status === 'pending' &&
+    ['pending', 'streaming'].includes(lastMessage.status) &&
     lastMessage.role === 'assistant'
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
@@ -113,9 +113,12 @@ export function ChatPanel({
                 ) : (
                   messages.map((message: UIMessage) => {
                     if (
-                      message.status === 'pending' &&
-                      message.role === 'assistant' &&
-                      message.text === ''
+                      (message.role === 'assistant' &&
+                        message.status === 'pending' &&
+                        message.text === '') ||
+                      (message.role === 'assistant' &&
+                        message.status === 'streaming' &&
+                        message.text === '')
                     ) {
                       return null
                     }
