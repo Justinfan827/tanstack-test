@@ -80,6 +80,7 @@ Range 0-10. Decimals up to 2 places allowed.`
       throw new Error("User not authenticated");
     }
     const rowId = await ctx.runMutation(internal.programRows.internalAddExercise, {
+      clientId: crypto.randomUUID(),
       userId: ctx.userId as Id<"users">,
       dayId: args.dayId as Id<"days">,
       libraryExerciseId: args.libraryExerciseId as Id<"exerciseLibrary">,
@@ -113,6 +114,7 @@ export const addHeaderTool = createTool({
       throw new Error("User not authenticated");
     }
     const rowId = await ctx.runMutation(internal.programRows.internalAddHeader, {
+      clientId: crypto.randomUUID(),
       userId: ctx.userId as Id<"users">,
       dayId: args.dayId as Id<"days">,
       name: args.name,

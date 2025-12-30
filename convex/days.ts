@@ -36,6 +36,7 @@ async function insertRowsForDay(
     if (row.kind === "exercise") {
       await ctx.db.insert("programRows", {
         kind: "exercise",
+        clientId: crypto.randomUUID(),
         dayId,
         order: i,
         libraryExerciseId: row.libraryExerciseId,
@@ -48,6 +49,7 @@ async function insertRowsForDay(
     } else {
       await ctx.db.insert("programRows", {
         kind: "header",
+        clientId: crypto.randomUUID(),
         dayId,
         order: i,
         groupId: row.groupId,
@@ -75,6 +77,7 @@ export const addDay = mutation({
     const order = await getNextDayOrder(ctx, args.programId);
 
     const dayId = await ctx.db.insert("days", {
+      clientId: crypto.randomUUID(),
       programId: args.programId,
       dayLabel: args.dayLabel,
       order,
@@ -187,6 +190,7 @@ export const duplicateDay = mutation({
     const order = await getNextDayOrder(ctx, day.programId);
 
     const newDayId = await ctx.db.insert("days", {
+      clientId: crypto.randomUUID(),
       programId: day.programId,
       dayLabel: `${day.dayLabel} (copy)`,
       order,
@@ -213,6 +217,7 @@ export const duplicateDay = mutation({
         }
         await ctx.db.insert("programRows", {
           kind: "exercise",
+          clientId: crypto.randomUUID(),
           dayId: newDayId,
           order: row.order,
           libraryExerciseId: row.libraryExerciseId,
@@ -229,6 +234,7 @@ export const duplicateDay = mutation({
         const newGroupId = groupIdMap.get(row.groupId)!;
         await ctx.db.insert("programRows", {
           kind: "header",
+          clientId: crypto.randomUUID(),
           dayId: newDayId,
           order: row.order,
           groupId: newGroupId,
@@ -283,6 +289,7 @@ export const internalAddDay = internalMutation({
     const order = await getNextDayOrder(ctx, args.programId);
 
     const dayId = await ctx.db.insert("days", {
+      clientId: crypto.randomUUID(),
       programId: args.programId,
       dayLabel: args.dayLabel,
       order,
@@ -382,6 +389,7 @@ export const internalDuplicateDay = internalMutation({
     const order = await getNextDayOrder(ctx, day.programId);
 
     const newDayId = await ctx.db.insert("days", {
+      clientId: crypto.randomUUID(),
       programId: day.programId,
       dayLabel: `${day.dayLabel} (copy)`,
       order,
@@ -406,6 +414,7 @@ export const internalDuplicateDay = internalMutation({
         }
         await ctx.db.insert("programRows", {
           kind: "exercise",
+          clientId: crypto.randomUUID(),
           dayId: newDayId,
           order: row.order,
           libraryExerciseId: row.libraryExerciseId,
@@ -422,6 +431,7 @@ export const internalDuplicateDay = internalMutation({
         const newGroupId = groupIdMap.get(row.groupId)!;
         await ctx.db.insert("programRows", {
           kind: "header",
+          clientId: crypto.randomUUID(),
           dayId: newDayId,
           order: row.order,
           groupId: newGroupId,

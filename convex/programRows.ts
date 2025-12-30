@@ -9,6 +9,7 @@ import { exerciseFieldUpdates, headerFieldUpdates } from "./helpers/validators";
  */
 export const addExercise = mutation({
   args: {
+    clientId: v.string(),
     dayId: v.id("days"),
     libraryExerciseId: v.optional(v.id("exerciseLibrary")),
     weight: v.string(),
@@ -37,6 +38,7 @@ export const addExercise = mutation({
 
     return await ctx.db.insert("programRows", {
       kind: "exercise",
+      clientId: args.clientId,
       dayId: args.dayId,
       order,
       libraryExerciseId: args.libraryExerciseId,
@@ -54,6 +56,7 @@ export const addExercise = mutation({
  */
 export const addEmptyExerciseRow = mutation({
   args: {
+    clientId: v.string(),
     dayId: v.id("days"),
   },
   returns: v.id("programRows"),
@@ -65,6 +68,7 @@ export const addEmptyExerciseRow = mutation({
 
     return await ctx.db.insert("programRows", {
       kind: "exercise",
+      clientId: args.clientId,
       dayId: args.dayId,
       order,
       libraryExerciseId: undefined,
@@ -81,6 +85,7 @@ export const addEmptyExerciseRow = mutation({
  */
 export const addHeader = mutation({
   args: {
+    clientId: v.string(),
     dayId: v.id("days"),
     name: v.string(),
     sets: v.optional(v.string()),
@@ -95,6 +100,7 @@ export const addHeader = mutation({
 
     return await ctx.db.insert("programRows", {
       kind: "header",
+      clientId: args.clientId,
       dayId: args.dayId,
       order,
       groupId,
@@ -477,6 +483,7 @@ export const ungroupExercise = mutation({
 
 export const internalAddExercise = internalMutation({
   args: {
+    clientId: v.string(),
     userId: v.id("users"),
     dayId: v.id("days"),
     libraryExerciseId: v.id("exerciseLibrary"),
@@ -504,6 +511,7 @@ export const internalAddExercise = internalMutation({
 
     return await ctx.db.insert("programRows", {
       kind: "exercise",
+      clientId: args.clientId,
       dayId: args.dayId,
       order,
       libraryExerciseId: args.libraryExerciseId,
@@ -520,6 +528,7 @@ export const internalAddExercise = internalMutation({
 
 export const internalAddHeader = internalMutation({
   args: {
+    clientId: v.string(),
     userId: v.id("users"),
     dayId: v.id("days"),
     name: v.string(),
@@ -534,6 +543,7 @@ export const internalAddHeader = internalMutation({
 
     return await ctx.db.insert("programRows", {
       kind: "header",
+      clientId: args.clientId,
       dayId: args.dayId,
       order,
       groupId,

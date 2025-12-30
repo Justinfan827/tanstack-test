@@ -39,6 +39,7 @@ async function insertDaysForProgram(
   for (let dayIndex = 0; dayIndex < days.length; dayIndex++) {
     const dayInput = days[dayIndex];
     const dayId = await ctx.db.insert("days", {
+      clientId: crypto.randomUUID(),
       programId,
       dayLabel: dayInput.dayLabel,
       order: dayIndex,
@@ -49,6 +50,7 @@ async function insertDaysForProgram(
       if (row.kind === "exercise") {
         await ctx.db.insert("programRows", {
           kind: "exercise",
+          clientId: crypto.randomUUID(),
           dayId,
           order: rowIndex,
           libraryExerciseId: row.libraryExerciseId,
@@ -61,6 +63,7 @@ async function insertDaysForProgram(
       } else {
         await ctx.db.insert("programRows", {
           kind: "header",
+          clientId: crypto.randomUUID(),
           dayId,
           order: rowIndex,
           groupId: row.groupId,
@@ -161,6 +164,7 @@ export const duplicateProgram = mutation({
 
     for (const day of days) {
       const newDayId = await ctx.db.insert("days", {
+        clientId: crypto.randomUUID(),
         programId: newProgramId,
         dayLabel: day.dayLabel,
         order: day.order,
@@ -186,6 +190,7 @@ export const duplicateProgram = mutation({
           }
           await ctx.db.insert("programRows", {
             kind: "exercise",
+            clientId: crypto.randomUUID(),
             dayId: newDayId,
             order: row.order,
             libraryExerciseId: row.libraryExerciseId,
@@ -202,6 +207,7 @@ export const duplicateProgram = mutation({
           const newGroupId = groupIdMap.get(row.groupId)!;
           await ctx.db.insert("programRows", {
             kind: "header",
+            clientId: crypto.randomUUID(),
             dayId: newDayId,
             order: row.order,
             groupId: newGroupId,
@@ -296,6 +302,7 @@ export const getProgram = query({
         v.object({
           _id: v.id("days"),
           _creationTime: v.number(),
+          clientId: v.string(),
           dayLabel: v.string(),
           order: v.number(),
           rows: v.array(
@@ -303,6 +310,7 @@ export const getProgram = query({
               v.object({
                 _id: v.id("programRows"),
                 _creationTime: v.number(),
+                clientId: v.string(),
                 kind: v.literal("exercise"),
                 order: v.number(),
                 libraryExerciseId: v.optional(v.id("exerciseLibrary")),
@@ -317,6 +325,7 @@ export const getProgram = query({
               v.object({
                 _id: v.id("programRows"),
                 _creationTime: v.number(),
+                clientId: v.string(),
                 kind: v.literal("header"),
                 order: v.number(),
                 groupId: v.string(),
@@ -354,6 +363,7 @@ export const getProgram = query({
       daysWithRows.push({
         _id: day._id,
         _creationTime: day._creationTime,
+        clientId: day.clientId,
         dayLabel: day.dayLabel,
         order: day.order,
         rows: rows.map((row) => {
@@ -361,6 +371,7 @@ export const getProgram = query({
             return {
               _id: row._id,
               _creationTime: row._creationTime,
+              clientId: row.clientId,
               kind: "exercise" as const,
               order: row.order,
               libraryExerciseId: row.libraryExerciseId,
@@ -376,6 +387,7 @@ export const getProgram = query({
             return {
               _id: row._id,
               _creationTime: row._creationTime,
+              clientId: row.clientId,
               kind: "header" as const,
               order: row.order,
               groupId: row.groupId,
@@ -482,6 +494,7 @@ export const internalGetProgram = internalQuery({
         v.object({
           _id: v.id("days"),
           _creationTime: v.number(),
+          clientId: v.string(),
           dayLabel: v.string(),
           order: v.number(),
           rows: v.array(
@@ -489,6 +502,7 @@ export const internalGetProgram = internalQuery({
               v.object({
                 _id: v.id("programRows"),
                 _creationTime: v.number(),
+                clientId: v.string(),
                 kind: v.literal("exercise"),
                 order: v.number(),
                 libraryExerciseId: v.optional(v.id("exerciseLibrary")),
@@ -503,6 +517,7 @@ export const internalGetProgram = internalQuery({
               v.object({
                 _id: v.id("programRows"),
                 _creationTime: v.number(),
+                clientId: v.string(),
                 kind: v.literal("header"),
                 order: v.number(),
                 groupId: v.string(),
@@ -538,6 +553,7 @@ export const internalGetProgram = internalQuery({
       daysWithRows.push({
         _id: day._id,
         _creationTime: day._creationTime,
+        clientId: day.clientId,
         dayLabel: day.dayLabel,
         order: day.order,
         rows: rows.map((row) => {
@@ -545,6 +561,7 @@ export const internalGetProgram = internalQuery({
             return {
               _id: row._id,
               _creationTime: row._creationTime,
+              clientId: row.clientId,
               kind: "exercise" as const,
               order: row.order,
               libraryExerciseId: row.libraryExerciseId,
@@ -560,6 +577,7 @@ export const internalGetProgram = internalQuery({
             return {
               _id: row._id,
               _creationTime: row._creationTime,
+              clientId: row.clientId,
               kind: "header" as const,
               order: row.order,
               groupId: row.groupId,
@@ -639,6 +657,7 @@ export const internalDuplicateProgram = internalMutation({
 
     for (const day of days) {
       const newDayId = await ctx.db.insert("days", {
+        clientId: crypto.randomUUID(),
         programId: newProgramId,
         dayLabel: day.dayLabel,
         order: day.order,
@@ -663,6 +682,7 @@ export const internalDuplicateProgram = internalMutation({
           }
           await ctx.db.insert("programRows", {
             kind: "exercise",
+            clientId: crypto.randomUUID(),
             dayId: newDayId,
             order: row.order,
             libraryExerciseId: row.libraryExerciseId,
@@ -679,6 +699,7 @@ export const internalDuplicateProgram = internalMutation({
           const newGroupId = groupIdMap.get(row.groupId)!;
           await ctx.db.insert("programRows", {
             kind: "header",
+            clientId: crypto.randomUUID(),
             dayId: newDayId,
             order: row.order,
             groupId: newGroupId,

@@ -20,6 +20,7 @@ export default defineSchema({
   }).index("by_user", ["userId"]),
 
   days: defineTable({
+    clientId: v.string(),
     programId: v.id("programs"),
     dayLabel: v.string(),
     order: v.number(), // integer, renumber on reorder
@@ -31,6 +32,7 @@ export default defineSchema({
     v.union(
       v.object({
         kind: v.literal("exercise"),
+        clientId: v.string(),
         dayId: v.id("days"),
         order: v.number(),
         libraryExerciseId: v.optional(v.id("exerciseLibrary")), // optional for empty rows
@@ -44,6 +46,7 @@ export default defineSchema({
       }),
       v.object({
         kind: v.literal("header"),
+        clientId: v.string(),
         dayId: v.id("days"),
         order: v.number(),
         groupId: v.string(),

@@ -9,6 +9,7 @@ import type { Id } from '../../../convex/_generated/dataModel'
 
 export type ExerciseRow = {
   _id: Id<'programRows'>
+  clientId: string
   libraryExerciseId?: Id<'exerciseLibrary'>
   weight: string
   reps: string
@@ -37,6 +38,7 @@ export function ProgramGrid({ programId }: { programId: Id<'programs'> }) {
           (row) =>
             ({
               _id: row._id,
+              clientId: row.clientId,
               libraryExerciseId: row.libraryExerciseId,
               weight: row.weight,
               reps: row.reps,
@@ -209,6 +211,7 @@ function DayGrid({
     const newRow = {
       _id: tempId,
       _creationTime: Date.now(),
+      clientId: args.clientId, // Use the same clientId from mutation args
       kind: 'exercise' as const,
       dayId: args.dayId,
       order: rows.length,
@@ -387,7 +390,8 @@ function DayGrid({
     // Fire-and-forget: don't await so focus happens immediately.
     // Optimistic update shows the row instantly; if mutation fails,
     // Convex rolls back automatically.
-    addEmptyRow({ dayId })
+    const clientId = crypto.randomUUID()
+    addEmptyRow({ clientId, dayId })
     return {
       rowIndex: rows.length,
       columnId: 'exercise',
@@ -414,7 +418,7 @@ function DayGrid({
     onDataChange: handleDataChange,
     onRowAdd,
     onRowsDelete,
-    getRowId: (row) => row._id,
+    getRowId: (row) => row.clientId,
   })
 
   return (
