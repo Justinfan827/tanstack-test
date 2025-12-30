@@ -1,0 +1,10 @@
+{
+  "mcp": {
+    "dev3000": {
+      "type": "remote",
+      "url": "http://localhost:3684/mcp",
+      "enabled": true
+    }
+  },
+  "$schema": "https://opencode.ai/config.json"
+}
