@@ -66,7 +66,7 @@ export function ProgramGrid({ programId }: { programId: Id<'programs'> }) {
   const columns = useMemo<ColumnDef<ExerciseRow>[]>(
     () => [
       {
-        id: 'exercise',
+        id: 'libraryExerciseId',
         accessorKey: 'libraryExerciseId',
         header: 'Exercise',
         meta: {
@@ -394,7 +394,7 @@ function DayGrid({
     addEmptyRow({ clientId, dayId })
     return {
       rowIndex: rows.length,
-      columnId: 'exercise',
+      columnId: 'libraryExerciseId',
     }
   }, [addEmptyRow, dayId, rows.length])
 
