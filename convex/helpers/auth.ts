@@ -1,6 +1,6 @@
 import { QueryCtx, MutationCtx } from "../_generated/server";
 import { Id } from "../_generated/dataModel";
-import { authComponent } from "../auth";
+import { authComponent, betterAuthComponent } from "../auth";
 
 /**
  * Get current user ID from better-auth session.
@@ -74,4 +74,137 @@ export async function verifyRowOwnership(
   }
   const { day } = await verifyDayOwnership(ctx, row.dayId, userId);
   return { row, day };
+}
+
+/**
+ * Get Better Auth user data for a given authId.
+ * Returns user object with name, email, image fields.
+ */
+export async function getBetterAuthUser(
+  ctx: QueryCtx | MutationCtx,
+  authId: string
+) {
+  // Query Better Auth user table via component adapter
+  const authUser = await ctx.runQuery(betterAuthComponent.adapter.findOne, {
+    model: "user",
+    where: [{ field: "_id", value: authId }],
+  });
+  
+  if (!authUser) {
+    throw new Error(`Auth user not found: ${authId}`);
+  }
+  
+  return {
+    name: authUser.name as string,
+    email: authUser.email as string,
+    image: (authUser.image as string | null) || undefined,
+    emailVerified: authUser.emailVerified as boolean,
+  };
+}
+
+/**
+ * Enrich a single Convex user with Better Auth data.
+ * Splits name into firstName/lastName on whitespace.
+ */
+export async function enrichUserWithAuth(
+  ctx: QueryCtx | MutationCtx,
+  user: {
+    _id: Id<"users">;
+    _creationTime: number;
+    authId: string;
+    role: "trainer" | "client";
+    trustMode: "high" | "low";
+    trainerId?: Id<"users">;
+    age?: number;
+    gender?: "male" | "female";
+    heightValue?: number;
+    heightUnit?: "cm" | "in";
+    weightValue?: number;
+    weightUnit?: "kg" | "lbs";
+  }
+) {
+  const authUser = await getBetterAuthUser(ctx, user.authId);
+  
+  // Split name on whitespace: "John Doe" → firstName: "John", lastName: "Doe"
+  const nameParts = authUser.name.trim().split(/\s+/);
+  const firstName = nameParts[0] || "";
+  const lastName = nameParts.slice(1).join(" ") || "";
+  
+  return {
+    _id: user._id,
+    _creationTime: user._creationTime,
+    authId: user.authId,
+    role: user.role,
+    trustMode: user.trustMode,
+    trainerId: user.trainerId,
+    
+    // From Better Auth
+    email: authUser.email,
+    name: authUser.name,
+    firstName,
+    lastName,
+    image: authUser.image,
+    emailVerified: authUser.emailVerified,
+    
+    // Fitness data
+    age: user.age,
+    gender: user.gender,
+    heightValue: user.heightValue,
+    heightUnit: user.heightUnit,
+    weightValue: user.weightValue,
+    weightUnit: user.weightUnit,
+  };
+}
+
+/**
+ * Enrich multiple users in parallel (batch operation).
+ * More efficient than sequential enrichment.
+ */
+export async function enrichUsersWithAuth<
+  T extends {
+    _id: Id<"users">;
+    _creationTime: number;
+    authId: string;
+    role: "trainer" | "client";
+    trustMode: "high" | "low";
+    trainerId?: Id<"users">;
+    age?: number;
+    gender?: "male" | "female";
+    heightValue?: number;
+    heightUnit?: "cm" | "in";
+    weightValue?: number;
+    weightUnit?: "kg" | "lbs";
+  }
+>(ctx: QueryCtx | MutationCtx, users: T[]) {
+  return await Promise.all(
+    users.map((user) => enrichUserWithAuth(ctx, user))
+  );
+}
+
+/**
+ * Generate a secure temporary password for new clients.
+ * Format: 12 chars alphanumeric + special chars
+ * Example: "aB3$xY9#mK2@"
+ */
+export function generateTemporaryPassword(): string {
+  const lowercase = 'abcdefghijklmnopqrstuvwxyz';
+  const uppercase = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+  const numbers = '0123456789';
+  const special = '!@#$%^&*';
+  const allChars = lowercase + uppercase + numbers + special;
+  
+  let password = '';
+  // Ensure at least one of each type
+  password += lowercase[Math.floor(Math.random() * lowercase.length)];
+  password += uppercase[Math.floor(Math.random() * uppercase.length)];
+  password += numbers[Math.floor(Math.random() * numbers.length)];
+  password += special[Math.floor(Math.random() * special.length)];
+  
+  // Fill remaining 8 chars randomly
+  for (let i = 0; i < 8; i++) {
+    password += allChars[Math.floor(Math.random() * allChars.length)];
+  }
+  
+  // Shuffle the password
+  return password.split('').sort(() => Math.random() - 0.5).join('');
 }

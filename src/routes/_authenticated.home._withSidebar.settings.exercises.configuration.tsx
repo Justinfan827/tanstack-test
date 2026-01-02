@@ -1,7 +1,7 @@
 import { createFileRoute } from '@tanstack/react-router'
 
 export const Route = createFileRoute(
-  '/_authenticated/home/settings/exercises/configuration',
+  '/_authenticated/home/_withSidebar/settings/exercises/configuration',
 )({
   component: ExerciseConfigurationPage,
 })

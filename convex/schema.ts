@@ -4,8 +4,27 @@ import { v } from "convex/values";
 export default defineSchema({
   users: defineTable({
     authId: v.string(),
+    
+    // App-level role (separate from Better Auth admin role)
+    role: v.union(v.literal("trainer"), v.literal("client")),
+    
+    // Trainer mode settings
     trustMode: v.union(v.literal("high"), v.literal("low")),
-  }).index("by_auth_id", ["authId"]),
+    
+    // Trainer-client relationship
+    trainerId: v.optional(v.id("users")),
+    
+    // Client-specific fitness data
+    age: v.optional(v.number()),
+    gender: v.optional(v.union(v.literal("male"), v.literal("female"))),
+    heightValue: v.optional(v.number()),
+    heightUnit: v.optional(v.union(v.literal("cm"), v.literal("in"))),
+    weightValue: v.optional(v.number()),
+    weightUnit: v.optional(v.union(v.literal("kg"), v.literal("lbs"))),
+  })
+    .index("by_auth_id", ["authId"])
+    .index("by_trainer_id", ["trainerId"])
+    .index("by_role", ["role"]),
 
   exerciseLibrary: defineTable({
     name: v.string(),

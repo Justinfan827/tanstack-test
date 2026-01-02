@@ -16,6 +16,9 @@ export const authComponent = createClient<DataModel>(components.betterAuth, {
   // Debugging better auth x convex
   verbose: true,
 })
+
+// Export the component for direct adapter access (for querying Better Auth tables)
+export const betterAuthComponent = components.betterAuth
 export const createAuthOptions = (ctx: GenericCtx<DataModel>) => {
   return {
     user: {
