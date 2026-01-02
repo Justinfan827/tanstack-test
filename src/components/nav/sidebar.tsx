@@ -1,0 +1,173 @@
+import { Link, useLocation, useRouter } from '@tanstack/react-router'
+import { ChevronLeft, Settings, SquareLibrary, User } from 'lucide-react'
+import { NavUser } from '@/components/nav-user'
+import {
+  Sidebar,
+  SidebarContent,
+  SidebarFooter,
+  SidebarGroup,
+  SidebarGroupContent,
+  SidebarGroupLabel,
+  SidebarHeader,
+  SidebarMenu,
+  SidebarMenuButton,
+  SidebarMenuItem,
+} from '@/components/ui/sidebar'
+
+// Menu items.
+const mainItems = [
+  {
+    title: 'Clients',
+    url: '/home/clients',
+    matchRegex: '^/home/clients',
+    icon: User,
+  },
+  {
+    title: 'Programs',
+    url: '/home/programs',
+    matchRegex: '^/home/programs',
+    icon: SquareLibrary,
+  },
+]
+
+const settingsItems = [
+  {
+    title: 'Library',
+    url: '/home/settings/exercises/library',
+    matchRegex: '^/home/settings/exercises/library',
+    icon: SquareLibrary,
+  },
+  {
+    title: 'Configuration',
+    url: '/home/settings/exercises/configuration',
+    matchRegex: '^/home/settings/exercises/configuration',
+    icon: Settings,
+  },
+]
+
+type AppSidebarProps = {
+  hideOnURLs?: string[]
+}
+
+const userSettingsRegex = /\/settings(\/|$)/
+
+export function AppSidebar({ hideOnURLs = [] }: AppSidebarProps) {
+  const location = useLocation()
+  const router = useRouter()
+  const path = location.pathname
+
+  if (hideOnURLs.some((url) => new RegExp(url).test(path))) {
+    return null
+  }
+
+  const isUserSettingsPage = userSettingsRegex.test(path)
+
+  const handleBackClick = () => {
+    router.navigate({ to: '/home/clients' })
+  }
+
+  return (
+    <Sidebar collapsible="icon" variant="inset">
+      <SidebarHeader>
+        <SidebarMenu>
+          <SidebarMenuItem>
+            <SidebarMenuButton
+              render={(props) => (
+                <Link to="/home" {...props}>
+                  <span className="font-semibold text-base">Massor</span>
+                </Link>
+              )}
+              className="data-[slot=sidebar-menu-button]:!p-1.5"
+            />
+          </SidebarMenuItem>
+        </SidebarMenu>
+      </SidebarHeader>
+      <SidebarContent>
+        <div className="relative h-full overflow-hidden">
+          {/* Main sidebar content */}
+          <div
+            className={`absolute inset-0 transition-transform duration-300 ease-in-out ${
+              isUserSettingsPage ? '-translate-x-full' : 'translate-x-0'
+            }`}
+          >
+            <SidebarGroup>
+              <SidebarGroupContent>
+                <SidebarMenu>
+                  {mainItems.map((item) => {
+                    const isActive = new RegExp(item.matchRegex).test(path)
+                    return (
+                      <SidebarMenuItem key={item.title}>
+                        <SidebarMenuButton
+                          isActive={isActive}
+                          render={(props) => (
+                            <Link to={item.url} {...props}>
+                              <item.icon className="text-sidebar-accent-foreground/70 transition-colors duration-100 ease-linear group-hover/menu-item:text-sidebar-accent-foreground group-has-data-[active=true]/menu-item:font-medium group-has-data-[active=true]/menu-item:text-sidebar-accent-foreground" />
+                              <span>{item.title}</span>
+                            </Link>
+                          )}
+                        />
+                      </SidebarMenuItem>
+                    )
+                  })}
+                </SidebarMenu>
+              </SidebarGroupContent>
+            </SidebarGroup>
+          </div>
+
+          {/* Settings sidebar content */}
+          <div
+            className={`absolute inset-0 transition-transform duration-300 ease-in-out ${
+              isUserSettingsPage ? 'translate-x-0' : 'translate-x-full'
+            }`}
+          >
+            <SidebarGroup>
+              <SidebarGroupContent>
+                <SidebarMenu>
+                  <SidebarMenuItem>
+                    <SidebarMenuButton
+                      onClick={handleBackClick}
+                      render={(props) => (
+                        <button {...props} aria-label="Back" type="button">
+                          <ChevronLeft className="text-sidebar-accent-foreground/70 transition-colors duration-100 ease-linear group-hover/menu-item:text-sidebar-accent-foreground" />
+                          <span>Back</span>
+                        </button>
+                      )}
+                    />
+                  </SidebarMenuItem>
+                  <SidebarGroup>
+                    <SidebarGroupLabel>Exercises</SidebarGroupLabel>
+                    <SidebarGroupContent>
+                      <SidebarMenu>
+                        {settingsItems.map((item) => {
+                          const isActive = new RegExp(item.matchRegex).test(
+                            path,
+                          )
+                          return (
+                            <SidebarMenuItem key={item.title}>
+                              <SidebarMenuButton
+                                isActive={isActive}
+                                render={(props) => (
+                                  <Link to={item.url} {...props}>
+                                    <item.icon className="text-sidebar-accent-foreground/70 transition-colors duration-100 ease-linear group-hover/menu-item:text-sidebar-accent-foreground group-has-data-[active=true]/menu-item:font-medium group-has-data-[active=true]/menu-item:text-sidebar-accent-foreground" />
+                                    <span>{item.title}</span>
+                                  </Link>
+                                )}
+                              />
+                            </SidebarMenuItem>
+                          )
+                        })}
+                      </SidebarMenu>
+                    </SidebarGroupContent>
+                  </SidebarGroup>
+                </SidebarMenu>
+              </SidebarGroupContent>
+            </SidebarGroup>
+          </div>
+        </div>
+      </SidebarContent>
+      <SidebarFooter>
+        <NavUser />
+      </SidebarFooter>
+    </Sidebar>
+  )
+}

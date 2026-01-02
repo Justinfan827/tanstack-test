@@ -19,8 +19,12 @@ import { Route as AuthenticatedHomeRouteImport } from './routes/_authenticated.h
 import { Route as DemoStartApiRequestRouteImport } from './routes/demo/start.api-request'
 import { Route as DemoApiNamesRouteImport } from './routes/demo/api.names'
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
+import { Route as AuthenticatedHomeProgramsRouteImport } from './routes/_authenticated.home.programs'
+import { Route as AuthenticatedHomeClientsRouteImport } from './routes/_authenticated.home.clients'
 import { Route as DemoStartSsrFullSsrRouteImport } from './routes/demo/start.ssr.full-ssr'
 import { Route as DemoStartSsrDataOnlyRouteImport } from './routes/demo/start.ssr.data-only'
+import { Route as AuthenticatedHomeSettingsExercisesLibraryRouteImport } from './routes/_authenticated/home/settings/exercises/library'
+import { Route as AuthenticatedHomeSettingsExercisesConfigurationRouteImport } from './routes/_authenticated/home/settings/exercises/configuration'
 
 const PostsRoute = PostsRouteImport.update({
   id: '/posts',
@@ -71,6 +75,18 @@ const ApiAuthSplatRoute = ApiAuthSplatRouteImport.update({
   path: '/api/auth/$',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AuthenticatedHomeProgramsRoute =
+  AuthenticatedHomeProgramsRouteImport.update({
+    id: '/programs',
+    path: '/programs',
+    getParentRoute: () => AuthenticatedHomeRoute,
+  } as any)
+const AuthenticatedHomeClientsRoute =
+  AuthenticatedHomeClientsRouteImport.update({
+    id: '/clients',
+    path: '/clients',
+    getParentRoute: () => AuthenticatedHomeRoute,
+  } as any)
 const DemoStartSsrFullSsrRoute = DemoStartSsrFullSsrRouteImport.update({
   id: '/demo/start/ssr/full-ssr',
   path: '/demo/start/ssr/full-ssr',
@@ -81,32 +97,52 @@ const DemoStartSsrDataOnlyRoute = DemoStartSsrDataOnlyRouteImport.update({
   path: '/demo/start/ssr/data-only',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AuthenticatedHomeSettingsExercisesLibraryRoute =
+  AuthenticatedHomeSettingsExercisesLibraryRouteImport.update({
+    id: '/settings/exercises/library',
+    path: '/settings/exercises/library',
+    getParentRoute: () => AuthenticatedHomeRoute,
+  } as any)
+const AuthenticatedHomeSettingsExercisesConfigurationRoute =
+  AuthenticatedHomeSettingsExercisesConfigurationRouteImport.update({
+    id: '/settings/exercises/configuration',
+    path: '/settings/exercises/configuration',
+    getParentRoute: () => AuthenticatedHomeRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/admin': typeof AdminRoute
   '/login': typeof LoginRoute
   '/posts': typeof PostsRoute
-  '/home': typeof AuthenticatedHomeRoute
+  '/home': typeof AuthenticatedHomeRouteWithChildren
   '/demo/simple-table': typeof DemoSimpleTableRoute
+  '/home/clients': typeof AuthenticatedHomeClientsRoute
+  '/home/programs': typeof AuthenticatedHomeProgramsRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/demo/api/names': typeof DemoApiNamesRoute
   '/demo/start/api-request': typeof DemoStartApiRequestRoute
   '/demo/start/ssr/data-only': typeof DemoStartSsrDataOnlyRoute
   '/demo/start/ssr/full-ssr': typeof DemoStartSsrFullSsrRoute
+  '/home/settings/exercises/configuration': typeof AuthenticatedHomeSettingsExercisesConfigurationRoute
+  '/home/settings/exercises/library': typeof AuthenticatedHomeSettingsExercisesLibraryRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/admin': typeof AdminRoute
   '/login': typeof LoginRoute
   '/posts': typeof PostsRoute
-  '/home': typeof AuthenticatedHomeRoute
+  '/home': typeof AuthenticatedHomeRouteWithChildren
   '/demo/simple-table': typeof DemoSimpleTableRoute
+  '/home/clients': typeof AuthenticatedHomeClientsRoute
+  '/home/programs': typeof AuthenticatedHomeProgramsRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/demo/api/names': typeof DemoApiNamesRoute
   '/demo/start/api-request': typeof DemoStartApiRequestRoute
   '/demo/start/ssr/data-only': typeof DemoStartSsrDataOnlyRoute
   '/demo/start/ssr/full-ssr': typeof DemoStartSsrFullSsrRoute
+  '/home/settings/exercises/configuration': typeof AuthenticatedHomeSettingsExercisesConfigurationRoute
+  '/home/settings/exercises/library': typeof AuthenticatedHomeSettingsExercisesLibraryRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -115,13 +151,17 @@ export interface FileRoutesById {
   '/admin': typeof AdminRoute
   '/login': typeof LoginRoute
   '/posts': typeof PostsRoute
-  '/_authenticated/home': typeof AuthenticatedHomeRoute
+  '/_authenticated/home': typeof AuthenticatedHomeRouteWithChildren
   '/demo/simple-table': typeof DemoSimpleTableRoute
+  '/_authenticated/home/clients': typeof AuthenticatedHomeClientsRoute
+  '/_authenticated/home/programs': typeof AuthenticatedHomeProgramsRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/demo/api/names': typeof DemoApiNamesRoute
   '/demo/start/api-request': typeof DemoStartApiRequestRoute
   '/demo/start/ssr/data-only': typeof DemoStartSsrDataOnlyRoute
   '/demo/start/ssr/full-ssr': typeof DemoStartSsrFullSsrRoute
+  '/_authenticated/home/settings/exercises/configuration': typeof AuthenticatedHomeSettingsExercisesConfigurationRoute
+  '/_authenticated/home/settings/exercises/library': typeof AuthenticatedHomeSettingsExercisesLibraryRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -132,11 +172,15 @@ export interface FileRouteTypes {
     | '/posts'
     | '/home'
     | '/demo/simple-table'
+    | '/home/clients'
+    | '/home/programs'
     | '/api/auth/$'
     | '/demo/api/names'
     | '/demo/start/api-request'
     | '/demo/start/ssr/data-only'
     | '/demo/start/ssr/full-ssr'
+    | '/home/settings/exercises/configuration'
+    | '/home/settings/exercises/library'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -145,11 +189,15 @@ export interface FileRouteTypes {
     | '/posts'
     | '/home'
     | '/demo/simple-table'
+    | '/home/clients'
+    | '/home/programs'
     | '/api/auth/$'
     | '/demo/api/names'
     | '/demo/start/api-request'
     | '/demo/start/ssr/data-only'
     | '/demo/start/ssr/full-ssr'
+    | '/home/settings/exercises/configuration'
+    | '/home/settings/exercises/library'
   id:
     | '__root__'
     | '/'
@@ -159,11 +207,15 @@ export interface FileRouteTypes {
     | '/posts'
     | '/_authenticated/home'
     | '/demo/simple-table'
+    | '/_authenticated/home/clients'
+    | '/_authenticated/home/programs'
     | '/api/auth/$'
     | '/demo/api/names'
     | '/demo/start/api-request'
     | '/demo/start/ssr/data-only'
     | '/demo/start/ssr/full-ssr'
+    | '/_authenticated/home/settings/exercises/configuration'
+    | '/_authenticated/home/settings/exercises/library'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -252,6 +304,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiAuthSplatRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/_authenticated/home/programs': {
+      id: '/_authenticated/home/programs'
+      path: '/programs'
+      fullPath: '/home/programs'
+      preLoaderRoute: typeof AuthenticatedHomeProgramsRouteImport
+      parentRoute: typeof AuthenticatedHomeRoute
+    }
+    '/_authenticated/home/clients': {
+      id: '/_authenticated/home/clients'
+      path: '/clients'
+      fullPath: '/home/clients'
+      preLoaderRoute: typeof AuthenticatedHomeClientsRouteImport
+      parentRoute: typeof AuthenticatedHomeRoute
+    }
     '/demo/start/ssr/full-ssr': {
       id: '/demo/start/ssr/full-ssr'
       path: '/demo/start/ssr/full-ssr'
@@ -266,15 +332,48 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DemoStartSsrDataOnlyRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/_authenticated/home/settings/exercises/library': {
+      id: '/_authenticated/home/settings/exercises/library'
+      path: '/settings/exercises/library'
+      fullPath: '/home/settings/exercises/library'
+      preLoaderRoute: typeof AuthenticatedHomeSettingsExercisesLibraryRouteImport
+      parentRoute: typeof AuthenticatedHomeRoute
+    }
+    '/_authenticated/home/settings/exercises/configuration': {
+      id: '/_authenticated/home/settings/exercises/configuration'
+      path: '/settings/exercises/configuration'
+      fullPath: '/home/settings/exercises/configuration'
+      preLoaderRoute: typeof AuthenticatedHomeSettingsExercisesConfigurationRouteImport
+      parentRoute: typeof AuthenticatedHomeRoute
+    }
   }
 }
 
+interface AuthenticatedHomeRouteChildren {
+  AuthenticatedHomeClientsRoute: typeof AuthenticatedHomeClientsRoute
+  AuthenticatedHomeProgramsRoute: typeof AuthenticatedHomeProgramsRoute
+  AuthenticatedHomeSettingsExercisesConfigurationRoute: typeof AuthenticatedHomeSettingsExercisesConfigurationRoute
+  AuthenticatedHomeSettingsExercisesLibraryRoute: typeof AuthenticatedHomeSettingsExercisesLibraryRoute
+}
+
+const AuthenticatedHomeRouteChildren: AuthenticatedHomeRouteChildren = {
+  AuthenticatedHomeClientsRoute: AuthenticatedHomeClientsRoute,
+  AuthenticatedHomeProgramsRoute: AuthenticatedHomeProgramsRoute,
+  AuthenticatedHomeSettingsExercisesConfigurationRoute:
+    AuthenticatedHomeSettingsExercisesConfigurationRoute,
+  AuthenticatedHomeSettingsExercisesLibraryRoute:
+    AuthenticatedHomeSettingsExercisesLibraryRoute,
+}
+
+const AuthenticatedHomeRouteWithChildren =
+  AuthenticatedHomeRoute._addFileChildren(AuthenticatedHomeRouteChildren)
+
 interface AuthenticatedRouteChildren {
-  AuthenticatedHomeRoute: typeof AuthenticatedHomeRoute
+  AuthenticatedHomeRoute: typeof AuthenticatedHomeRouteWithChildren
 }
 
 const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
-  AuthenticatedHomeRoute: AuthenticatedHomeRoute,
+  AuthenticatedHomeRoute: AuthenticatedHomeRouteWithChildren,
 }
 
 const AuthenticatedRouteWithChildren = AuthenticatedRoute._addFileChildren(

@@ -1,20 +1,17 @@
-import { createFileRoute } from '@tanstack/react-router'
-import { SignOutButton } from '@/components/sign-out-button'
+import { createFileRoute, Outlet, redirect } from '@tanstack/react-router'
 
 export const Route = createFileRoute('/_authenticated/home')({
-  component: HomePage,
+  beforeLoad: ({ location }) => {
+    // Only redirect if at /home exactly, not child routes
+    if (location.pathname === '/home') {
+      throw redirect({
+        to: '/home/clients',
+      })
+    }
+  },
+  component: HomeLayout,
 })
 
-function HomePage() {
-  return (
-    <div className="min-h-screen p-8">
-      <div className="max-w-4xl mx-auto">
-        <h1 className="text-4xl font-bold mb-4">Welcome Home</h1>
-        <p className="text-muted-foreground mb-8">
-          You are successfully logged in.
-        </p>
-        <SignOutButton>Sign Out</SignOutButton>
-      </div>
-    </div>
-  )
+function HomeLayout() {
+  return <Outlet />
 }
