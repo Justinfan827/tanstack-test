@@ -130,7 +130,7 @@ export function DataGridColumnHeader<TData, TValue>({
         >
           <div className="flex min-w-0 flex-1 items-center gap-1.5">
             {columnVariant && (
-              <Tooltip delay={100}>
+              <Tooltip>
                 <TooltipTrigger
                   render={
                     <columnVariant.icon className="size-3.5 shrink-0 text-muted-foreground" />
