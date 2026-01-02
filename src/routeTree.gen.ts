@@ -10,6 +10,8 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as PostsRouteImport } from './routes/posts'
+import { Route as LoginRouteImport } from './routes/login'
+import { Route as HomeRouteImport } from './routes/home'
 import { Route as AdminRouteImport } from './routes/admin'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as DemoSimpleTableRouteImport } from './routes/demo/simple-table'
@@ -22,6 +24,16 @@ import { Route as DemoStartSsrDataOnlyRouteImport } from './routes/demo/start.ss
 const PostsRoute = PostsRouteImport.update({
   id: '/posts',
   path: '/posts',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LoginRoute = LoginRouteImport.update({
+  id: '/login',
+  path: '/login',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const HomeRoute = HomeRouteImport.update({
+  id: '/home',
+  path: '/home',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AdminRoute = AdminRouteImport.update({
@@ -68,6 +80,8 @@ const DemoStartSsrDataOnlyRoute = DemoStartSsrDataOnlyRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/admin': typeof AdminRoute
+  '/home': typeof HomeRoute
+  '/login': typeof LoginRoute
   '/posts': typeof PostsRoute
   '/demo/simple-table': typeof DemoSimpleTableRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
@@ -79,6 +93,8 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/admin': typeof AdminRoute
+  '/home': typeof HomeRoute
+  '/login': typeof LoginRoute
   '/posts': typeof PostsRoute
   '/demo/simple-table': typeof DemoSimpleTableRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
@@ -91,6 +107,8 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/admin': typeof AdminRoute
+  '/home': typeof HomeRoute
+  '/login': typeof LoginRoute
   '/posts': typeof PostsRoute
   '/demo/simple-table': typeof DemoSimpleTableRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
@@ -104,6 +122,8 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/admin'
+    | '/home'
+    | '/login'
     | '/posts'
     | '/demo/simple-table'
     | '/api/auth/$'
@@ -115,6 +135,8 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/admin'
+    | '/home'
+    | '/login'
     | '/posts'
     | '/demo/simple-table'
     | '/api/auth/$'
@@ -126,6 +148,8 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/admin'
+    | '/home'
+    | '/login'
     | '/posts'
     | '/demo/simple-table'
     | '/api/auth/$'
@@ -138,6 +162,8 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AdminRoute: typeof AdminRoute
+  HomeRoute: typeof HomeRoute
+  LoginRoute: typeof LoginRoute
   PostsRoute: typeof PostsRoute
   DemoSimpleTableRoute: typeof DemoSimpleTableRoute
   ApiAuthSplatRoute: typeof ApiAuthSplatRoute
@@ -154,6 +180,20 @@ declare module '@tanstack/react-router' {
       path: '/posts'
       fullPath: '/posts'
       preLoaderRoute: typeof PostsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/login': {
+      id: '/login'
+      path: '/login'
+      fullPath: '/login'
+      preLoaderRoute: typeof LoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/home': {
+      id: '/home'
+      path: '/home'
+      fullPath: '/home'
+      preLoaderRoute: typeof HomeRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/admin': {
@@ -218,6 +258,8 @@ declare module '@tanstack/react-router' {
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AdminRoute: AdminRoute,
+  HomeRoute: HomeRoute,
+  LoginRoute: LoginRoute,
   PostsRoute: PostsRoute,
   DemoSimpleTableRoute: DemoSimpleTableRoute,
   ApiAuthSplatRoute: ApiAuthSplatRoute,

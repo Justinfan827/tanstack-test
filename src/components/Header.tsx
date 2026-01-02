@@ -10,6 +10,37 @@ import {
 } from 'lucide-react'
 import { useState } from 'react'
 
+export function Logo({ ...props }: React.SVGAttributes<HTMLOrSVGElement>) {
+  return (
+    <svg
+      className="h-[32px] w-[32px]"
+      fill="none"
+      viewBox="0 0 53 53"
+      xmlns="http://www.w3.org/2000/svg"
+      {...props}
+    >
+      <title>Logo</title>
+      <rect fill="white" height="53" width="53" />
+      <rect fill="black" height="25" width="10" x="34" y="14" />
+      <rect fill="black" height="25" width="10" x="9" y="14" />
+      <rect fill="black" height="10" width="25" x="14" y="21.5" />
+      <rect fill="white" height="10" width="5" x="14" y="21.5" />
+      <rect fill="white" height="10" width="5" x="34" y="21.5" />
+    </svg>
+  )
+}
+
+export function UnauthHeader() {
+  return (
+    <header className="flex h-16 w-full items-center border-b px-4">
+      <div className="flex items-center gap-4">
+        <Logo />
+        <h1 className="font-secondary text-2xl">Massor</h1>
+      </div>
+    </header>
+  )
+}
+
 export default function Header() {
   const [isOpen, setIsOpen] = useState(false)
   const [groupedExpanded, setGroupedExpanded] = useState<
@@ -20,6 +51,7 @@ export default function Header() {
     <>
       <header className="p-4 flex items-center bg-gray-800 text-white shadow-lg">
         <button
+          type="button"
           onClick={() => setIsOpen(true)}
           className="p-2 hover:bg-gray-700 rounded-lg transition-colors"
           aria-label="Open menu"
@@ -45,6 +77,7 @@ export default function Header() {
         <div className="flex items-center justify-between p-4 border-b border-gray-700">
           <h2 className="text-xl font-bold">Navigation</h2>
           <button
+            type="button"
             onClick={() => setIsOpen(false)}
             className="p-2 hover:bg-gray-800 rounded-lg transition-colors"
             aria-label="Close menu"
@@ -83,6 +116,7 @@ export default function Header() {
 
           <div className="flex flex-row justify-between">
             <button
+              type="button"
               className="p-2 hover:bg-gray-800 rounded-lg transition-colors"
               onClick={() =>
                 setGroupedExpanded((prev) => ({
