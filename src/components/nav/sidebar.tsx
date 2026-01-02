@@ -1,5 +1,6 @@
 import { Link, useLocation, useRouter } from '@tanstack/react-router'
 import { ChevronLeft, Settings, SquareLibrary, User } from 'lucide-react'
+import { LogoText } from '@/components/logo'
 import { NavUser } from '@/components/nav-user'
 import {
   Sidebar,
@@ -74,7 +75,7 @@ export function AppSidebar({ hideOnURLs = [] }: AppSidebarProps) {
             <SidebarMenuButton
               render={(props) => (
                 <Link to="/home" {...props}>
-                  <span className="font-semibold text-base">Massor</span>
+                  <LogoText size="sm" />
                 </Link>
               )}
               className="data-[slot=sidebar-menu-button]:!p-1.5"

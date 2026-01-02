@@ -9,6 +9,7 @@ import {
   X,
 } from 'lucide-react'
 import { useState } from 'react'
+import { LogoText } from '@/components/logo'
 
 export function Logo({ ...props }: React.SVGAttributes<HTMLOrSVGElement>) {
   return (
@@ -35,7 +36,9 @@ export function UnauthHeader() {
     <header className="flex h-16 w-full items-center border-b px-4">
       <div className="flex items-center gap-4">
         <Logo />
-        <h1 className="font-secondary text-2xl">Massor</h1>
+        <h1>
+          <LogoText />
+        </h1>
       </div>
     </header>
   )

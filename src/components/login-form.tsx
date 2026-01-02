@@ -3,6 +3,7 @@ import { useRouter } from '@tanstack/react-router'
 import { Loader2 } from 'lucide-react'
 import { toast } from 'sonner'
 import { z } from 'zod'
+import { LogoText } from '@/components/logo'
 import { PasswordInput } from '@/components/password-input'
 import { Button } from '@/components/ui/button'
 import {
@@ -54,7 +55,9 @@ export function LoginForm() {
   return (
     <div className="w-[400px] space-y-10">
       <div className="flex flex-col items-center justify-center gap-4">
-        <h1 className="font-secondary text-3xl">Massor</h1>
+        <h1>
+          <LogoText size="lg" />
+        </h1>
         <p className="text-center text-muted-foreground">
           Enter your email below to login to your account
         </p>
