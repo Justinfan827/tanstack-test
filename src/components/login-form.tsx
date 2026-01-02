@@ -1,4 +1,5 @@
 import { useForm } from '@tanstack/react-form'
+import { useRouter } from '@tanstack/react-router'
 import { Loader2 } from 'lucide-react'
 import { toast } from 'sonner'
 import { z } from 'zod'
@@ -16,7 +17,7 @@ import { authClient } from '@/lib/auth-client'
 import { isLive } from '@/lib/utils'
 
 const loginSchema = z.object({
-  email: z.string().email({ message: 'Please enter a valid email address' }),
+  email: z.email({ message: 'Please enter a valid email address' }),
   password: z
     .string()
     .min(8, { message: 'Password must be at least 8 characters long' })
@@ -24,6 +25,8 @@ const loginSchema = z.object({
 })
 
 export function LoginForm() {
+  const router = useRouter()
+
   const form = useForm({
     validators: {
       onSubmit: loginSchema,
@@ -39,8 +42,8 @@ export function LoginForm() {
         return
       }
 
-      // Router will handle navigation via redirect
-      // No need to manually navigate
+      // Trigger route re-evaluation (beforeLoad will redirect)
+      router.invalidate()
     },
     defaultValues: {
       email: isLive() ? '' : 'user+1@test.com',

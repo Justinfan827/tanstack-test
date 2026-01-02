@@ -12,7 +12,7 @@ import { useRef, useState } from 'react'
 import { toast } from 'sonner'
 import { z } from 'zod'
 import { ChatPanel } from '@/components/chat/ChatPanel'
-import { SignOutButton } from '@/components/SignOutButton'
+import { SignOutButton } from '@/components/sign-out-button'
 import { Button } from '@/components/ui/button'
 import {
   Field,

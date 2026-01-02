@@ -1,4 +1,4 @@
-import type { ParseResult, ParsedSets } from './types'
+import type { ParsedSets, ParseResult } from './types'
 import { MAX_SETS } from './types'
 
 // Matches: N, N-N, N+AMRAP (case-insensitive for AMRAP)

@@ -16,7 +16,7 @@ import {
 } from '@/components/ui/input-group'
 import { cn } from '@/lib/utils'
 import { api } from '../../../convex/_generated/api'
-import { Conversation, ConversationContent } from '../Conversation'
+import { Conversation, ConversationContent } from '../conversation'
 
 function MessageContent({
   text,
