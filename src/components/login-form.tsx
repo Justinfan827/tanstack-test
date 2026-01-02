@@ -46,7 +46,7 @@ export function LoginForm() {
       router.invalidate()
     },
     defaultValues: {
-      email: isLive() ? '' : 'user+1@test.com',
+      email: isLive() ? '' : 'justinfan827@gmail.com',
       password: isLive() ? '' : 'password123',
     },
   })

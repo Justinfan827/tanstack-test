@@ -13,8 +13,14 @@ interface FocusInfo {
  */
 export function FocusDebugger() {
   const [info, setInfo] = useState<FocusInfo | null>(null)
-  const [showRing, setShowRing] = useState(true)
-  const [minimized, setMinimized] = useState(false)
+  const [showRing, setShowRing] = useState(() => {
+    const stored = localStorage.getItem('focus-debugger-show-ring')
+    return stored !== null ? stored === 'true' : true
+  })
+  const [minimized, setMinimized] = useState(() => {
+    const stored = localStorage.getItem('focus-debugger-minimized')
+    return stored !== null ? stored === 'true' : false
+  })
 
   useEffect(() => {
     const updateInfo = () => {
@@ -44,6 +50,16 @@ export function FocusDebugger() {
       document.removeEventListener('focusout', updateInfo)
     }
   }, [])
+
+  // Persist showRing preference
+  useEffect(() => {
+    localStorage.setItem('focus-debugger-show-ring', String(showRing))
+  }, [showRing])
+
+  // Persist minimized preference
+  useEffect(() => {
+    localStorage.setItem('focus-debugger-minimized', String(minimized))
+  }, [minimized])
 
   const label = info
     ? [

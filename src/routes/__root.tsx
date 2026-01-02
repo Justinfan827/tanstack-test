@@ -3,6 +3,7 @@ import type { ConvexQueryClient } from '@convex-dev/react-query'
 import { TanStackDevtools } from '@tanstack/react-devtools'
 import type { QueryClient } from '@tanstack/react-query'
 import {
+  ClientOnly,
   createRootRouteWithContext,
   HeadContent,
   Outlet,
@@ -12,7 +13,7 @@ import {
 import { TanStackRouterDevtoolsPanel } from '@tanstack/react-router-devtools'
 import { createServerFn } from '@tanstack/react-start'
 import type * as React from 'react'
-import { FocusDebugger } from '@/components/debug/FocusDebugger'
+import { FocusDebugger } from '@/components/debug/focus-debugger'
 import { Toaster } from '@/components/ui/sonner'
 import { authClient } from '@/lib/auth-client'
 import { getToken } from '@/lib/auth-server'
@@ -97,7 +98,9 @@ function RootDocument({ children }: { children: React.ReactNode }) {
         />
         <Scripts />
         <Toaster />
-        <FocusDebugger />
+        <ClientOnly fallback={null}>
+          <FocusDebugger />
+        </ClientOnly>
       </body>
     </html>
   )

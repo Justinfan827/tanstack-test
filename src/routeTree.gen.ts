@@ -11,10 +11,11 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as PostsRouteImport } from './routes/posts'
 import { Route as LoginRouteImport } from './routes/login'
-import { Route as HomeRouteImport } from './routes/home'
 import { Route as AdminRouteImport } from './routes/admin'
+import { Route as AuthenticatedRouteImport } from './routes/_authenticated'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as DemoSimpleTableRouteImport } from './routes/demo/simple-table'
+import { Route as AuthenticatedHomeRouteImport } from './routes/_authenticated.home'
 import { Route as DemoStartApiRequestRouteImport } from './routes/demo/start.api-request'
 import { Route as DemoApiNamesRouteImport } from './routes/demo/api.names'
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
@@ -31,14 +32,13 @@ const LoginRoute = LoginRouteImport.update({
   path: '/login',
   getParentRoute: () => rootRouteImport,
 } as any)
-const HomeRoute = HomeRouteImport.update({
-  id: '/home',
-  path: '/home',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const AdminRoute = AdminRouteImport.update({
   id: '/admin',
   path: '/admin',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AuthenticatedRoute = AuthenticatedRouteImport.update({
+  id: '/_authenticated',
   getParentRoute: () => rootRouteImport,
 } as any)
 const IndexRoute = IndexRouteImport.update({
@@ -50,6 +50,11 @@ const DemoSimpleTableRoute = DemoSimpleTableRouteImport.update({
   id: '/demo/simple-table',
   path: '/demo/simple-table',
   getParentRoute: () => rootRouteImport,
+} as any)
+const AuthenticatedHomeRoute = AuthenticatedHomeRouteImport.update({
+  id: '/home',
+  path: '/home',
+  getParentRoute: () => AuthenticatedRoute,
 } as any)
 const DemoStartApiRequestRoute = DemoStartApiRequestRouteImport.update({
   id: '/demo/start/api-request',
@@ -80,9 +85,9 @@ const DemoStartSsrDataOnlyRoute = DemoStartSsrDataOnlyRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/admin': typeof AdminRoute
-  '/home': typeof HomeRoute
   '/login': typeof LoginRoute
   '/posts': typeof PostsRoute
+  '/home': typeof AuthenticatedHomeRoute
   '/demo/simple-table': typeof DemoSimpleTableRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/demo/api/names': typeof DemoApiNamesRoute
@@ -93,9 +98,9 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/admin': typeof AdminRoute
-  '/home': typeof HomeRoute
   '/login': typeof LoginRoute
   '/posts': typeof PostsRoute
+  '/home': typeof AuthenticatedHomeRoute
   '/demo/simple-table': typeof DemoSimpleTableRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/demo/api/names': typeof DemoApiNamesRoute
@@ -106,10 +111,11 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/_authenticated': typeof AuthenticatedRouteWithChildren
   '/admin': typeof AdminRoute
-  '/home': typeof HomeRoute
   '/login': typeof LoginRoute
   '/posts': typeof PostsRoute
+  '/_authenticated/home': typeof AuthenticatedHomeRoute
   '/demo/simple-table': typeof DemoSimpleTableRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/demo/api/names': typeof DemoApiNamesRoute
@@ -122,9 +128,9 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/admin'
-    | '/home'
     | '/login'
     | '/posts'
+    | '/home'
     | '/demo/simple-table'
     | '/api/auth/$'
     | '/demo/api/names'
@@ -135,9 +141,9 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/admin'
-    | '/home'
     | '/login'
     | '/posts'
+    | '/home'
     | '/demo/simple-table'
     | '/api/auth/$'
     | '/demo/api/names'
@@ -147,10 +153,11 @@ export interface FileRouteTypes {
   id:
     | '__root__'
     | '/'
+    | '/_authenticated'
     | '/admin'
-    | '/home'
     | '/login'
     | '/posts'
+    | '/_authenticated/home'
     | '/demo/simple-table'
     | '/api/auth/$'
     | '/demo/api/names'
@@ -161,8 +168,8 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AuthenticatedRoute: typeof AuthenticatedRouteWithChildren
   AdminRoute: typeof AdminRoute
-  HomeRoute: typeof HomeRoute
   LoginRoute: typeof LoginRoute
   PostsRoute: typeof PostsRoute
   DemoSimpleTableRoute: typeof DemoSimpleTableRoute
@@ -189,18 +196,18 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LoginRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/home': {
-      id: '/home'
-      path: '/home'
-      fullPath: '/home'
-      preLoaderRoute: typeof HomeRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/admin': {
       id: '/admin'
       path: '/admin'
       fullPath: '/admin'
       preLoaderRoute: typeof AdminRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/_authenticated': {
+      id: '/_authenticated'
+      path: ''
+      fullPath: ''
+      preLoaderRoute: typeof AuthenticatedRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/': {
@@ -216,6 +223,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/demo/simple-table'
       preLoaderRoute: typeof DemoSimpleTableRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/_authenticated/home': {
+      id: '/_authenticated/home'
+      path: '/home'
+      fullPath: '/home'
+      preLoaderRoute: typeof AuthenticatedHomeRouteImport
+      parentRoute: typeof AuthenticatedRoute
     }
     '/demo/start/api-request': {
       id: '/demo/start/api-request'
@@ -255,10 +269,22 @@ declare module '@tanstack/react-router' {
   }
 }
 
+interface AuthenticatedRouteChildren {
+  AuthenticatedHomeRoute: typeof AuthenticatedHomeRoute
+}
+
+const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
+  AuthenticatedHomeRoute: AuthenticatedHomeRoute,
+}
+
+const AuthenticatedRouteWithChildren = AuthenticatedRoute._addFileChildren(
+  AuthenticatedRouteChildren,
+)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AuthenticatedRoute: AuthenticatedRouteWithChildren,
   AdminRoute: AdminRoute,
-  HomeRoute: HomeRoute,
   LoginRoute: LoginRoute,
   PostsRoute: PostsRoute,
   DemoSimpleTableRoute: DemoSimpleTableRoute,
