@@ -98,9 +98,11 @@ function RootDocument({ children }: { children: React.ReactNode }) {
         />
         <Scripts />
         <Toaster />
-        <ClientOnly fallback={null}>
-          <FocusDebugger />
-        </ClientOnly>
+        {import.meta.env.DEV && (
+          <ClientOnly fallback={null}>
+            <FocusDebugger />
+          </ClientOnly>
+        )}
       </body>
     </html>
   )
