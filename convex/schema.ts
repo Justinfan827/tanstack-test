@@ -78,6 +78,15 @@ export default defineSchema({
     .index("by_day_and_order", ["dayId", "order"])
     .index("by_group", ["groupId"]),
 
+  // Maps agent threads to programs for scoped chat history
+  programThreads: defineTable({
+    programId: v.id("programs"),
+    threadId: v.string(), // from agent component
+    userId: v.id("users"),
+  })
+    .index("by_program", ["programId"])
+    .index("by_thread", ["threadId"]),
+
   // TODO: Pending changes tables for low trust mode
   // - pendingExerciseFieldUpdates
   // - pendingExerciseAdds

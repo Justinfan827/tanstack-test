@@ -143,8 +143,8 @@ export function setActiveTab(value: string) {
 
 export function getFocusRingEnabled(): boolean {
   const stored = localStorage.getItem(STORAGE_KEYS.focusRing)
-  // Default to true if not set
-  return stored === null ? true : stored === 'true'
+  // Default to false if not set
+  return stored === 'true'
 }
 
 export function setFocusRingEnabled(value: boolean) {

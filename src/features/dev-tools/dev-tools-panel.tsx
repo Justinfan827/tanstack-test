@@ -101,35 +101,51 @@ export function DevToolsPanel() {
         }}
       >
         {/* Header */}
-        <div
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: 8,
-            padding: '4px 8px',
-            borderBottom: minimized ? 'none' : '1px solid #333',
-          }}
-        >
+        {minimized ? (
           <button
             type="button"
             onClick={handleToggleMinimize}
             style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: 8,
+              padding: 12,
               background: 'none',
               border: 'none',
-              color: '#0f0',
               cursor: 'pointer',
-              padding: 0,
-              fontSize: 11,
-              fontFamily: 'monospace',
-              lineHeight: 1,
+              width: '100%',
             }}
           >
-            {minimized ? '+' : '-'}
+            <Wand2 size={20} style={{ color: '#0f0' }} />
           </button>
+        ) : (
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 8,
+              padding: '4px 8px',
+              borderBottom: '1px solid #333',
+            }}
+          >
+            <button
+              type="button"
+              onClick={handleToggleMinimize}
+              style={{
+                background: 'none',
+                border: 'none',
+                color: '#0f0',
+                cursor: 'pointer',
+                padding: 0,
+                fontSize: 11,
+                fontFamily: 'monospace',
+                lineHeight: 1,
+              }}
+            >
+              -
+            </button>
 
-          {minimized ? (
-            <Wand2 size={12} style={{ color: '#0f0' }} />
-          ) : (
             <div style={{ display: 'flex', gap: 4 }}>
               {TABS.map((tab) => (
                 <button
@@ -151,8 +167,8 @@ export function DevToolsPanel() {
                 </button>
               ))}
             </div>
-          )}
-        </div>
+          </div>
+        )}
 
         {/* Content */}
         {!minimized && (

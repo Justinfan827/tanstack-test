@@ -1,13 +1,15 @@
 import { createFileRoute, Link } from '@tanstack/react-router'
 import { useQuery } from 'convex/react'
-import { ChevronRight, User, Scale, Ruler } from 'lucide-react'
+import { User, Scale, Ruler, ChevronRight } from 'lucide-react'
 import { api } from '../../convex/_generated/api'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Separator } from '@/components/ui/separator'
 import { Button } from '@/components/ui/button'
 
-export const Route = createFileRoute('/_authenticated/home/_withSidebar/clients_/$clientId')({
+export const Route = createFileRoute(
+  '/_authenticated/home/_withSidebar/clients_/$clientId',
+)({
   component: ClientDetailPage,
 })
 

@@ -1,8 +1,9 @@
-import { createFileRoute } from '@tanstack/react-router'
+import { createFileRoute, useNavigate } from '@tanstack/react-router'
 import { useQuery } from 'convex/react'
 import { toast } from 'sonner'
-import { api } from '../../convex/_generated/api'
-import type { Id } from '../../convex/_generated/dataModel'
+import { z } from 'zod'
+import { ChatPanel } from '@/components/chat/ChatPanel'
+import { ThreadHistory } from '@/components/chat/ThreadHistory'
 import { Button } from '@/components/ui/button'
 import {
   Sidebar,
@@ -11,8 +12,15 @@ import {
   SidebarProvider,
 } from '@/components/ui/sidebar'
 import { ProgramGrid } from '@/features/programstudio/program-grid'
+import { api } from '../../convex/_generated/api'
+import type { Id } from '../../convex/_generated/dataModel'
+
+const studioSearchSchema = z.object({
+  chatId: z.string().optional(),
+})
 
 export const Route = createFileRoute('/_authenticated/home/studio/$programId')({
+  validateSearch: studioSearchSchema,
   component: StudioPage,
 })
 
@@ -42,7 +50,7 @@ function StudioPage() {
           variant="inset"
         >
           <SidebarContent>
-            <PlaceholderChat programId={programId} />
+            <StudioChatSidebar programId={programId} />
           </SidebarContent>
         </Sidebar>
 
@@ -64,7 +72,7 @@ function StudioHeader({ programName }: { programName?: string }) {
         {/* Breadcrumb */}
         <div className="flex items-center gap-2 leading-none text-sm">
           <a
-            className="text-muted-foreground hover:text-primary"
+            className="text-muted-foreground hover:text-foreground"
             href="/home/programs"
           >
             Programs
@@ -102,17 +110,42 @@ function StudioHeader({ programName }: { programName?: string }) {
   )
 }
 
-function PlaceholderChat({ programId }: { programId: string }) {
+function StudioChatSidebar({ programId }: { programId: string }) {
+  const typedProgramId = programId as Id<'programs'>
+  const navigate = useNavigate({ from: Route.fullPath })
+
+  // Get chatId from URL search params - defaults to null (new chat)
+  const chatId = Route.useSearch({
+    select: (search) => search.chatId ?? null,
+  })
+
+  const setThreadId = (id: string | null) => {
+    navigate({
+      search: (prev) => ({
+        ...prev,
+        chatId: id ?? undefined,
+      }),
+    })
+  }
+
   return (
-    <div className="flex h-full flex-col p-4">
-      <div className="mb-4 text-center">
-        <h3 className="font-semibold text-sm">AI Chat</h3>
-        <p className="mt-1 text-muted-foreground text-xs">
-          Program ID: {programId}
-        </p>
+    <div className="flex h-full flex-col">
+      {/* Thread History */}
+      <div className="px-3 py-2">
+        <ThreadHistory
+          programId={typedProgramId}
+          currentThreadId={chatId}
+          onSelectThread={setThreadId}
+        />
       </div>
-      <div className="flex flex-1 items-center justify-center rounded-lg border border-dashed border-muted-foreground/25 bg-muted/10 p-4">
-        <p className="text-muted-foreground text-sm">Chat panel will go here</p>
+
+      {/* Chat Panel */}
+      <div className="flex-1 overflow-hidden">
+        <ChatPanel
+          threadId={chatId}
+          setThreadId={setThreadId}
+          programId={typedProgramId}
+        />
       </div>
     </div>
   )

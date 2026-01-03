@@ -16,6 +16,7 @@ import {
 } from '@/components/ui/input-group'
 import { cn } from '@/lib/utils'
 import { api } from '../../../convex/_generated/api'
+import type { Id } from '../../../convex/_generated/dataModel'
 import { Conversation, ConversationContent } from '../conversation'
 
 function MessageContent({
@@ -34,17 +35,24 @@ function MessageContent({
 export function ChatPanel({
   threadId,
   setThreadId,
+  programId,
 }: {
   threadId: string | null
   setThreadId: (id: string | null) => void
+  programId?: Id<'programs'>
 }) {
   const [input, setInput] = useState('')
   const [isLoading, setIsLoading] = useState(false)
 
+  // Use program-scoped APIs when programId is provided
   const createThread = useMutation(api.chat.createNewThread)
+  const createProgramThread = useMutation(api.chat.createProgramThread)
   const sendMessage = useMutation(api.chat.sendMessage).withOptimisticUpdate(
     optimisticallySendMessage(api.chat.listMessages),
   )
+  const sendProgramMessage = useMutation(
+    api.chat.sendProgramMessage,
+  ).withOptimisticUpdate(optimisticallySendMessage(api.chat.listMessages))
 
   // TODO: pagination for going backwards for infinite scroll
   const { results: messages } = useUIMessages(
@@ -87,11 +95,23 @@ export function ChatPanel({
     try {
       let currentThreadId = threadId
       if (!currentThreadId) {
-        currentThreadId = await createThread()
+        // Use program-scoped thread creation when programId is provided
+        currentThreadId = programId
+          ? await createProgramThread({ programId })
+          : await createThread()
         setThreadId(currentThreadId)
       }
 
-      await sendMessage({ threadId: currentThreadId, prompt: text })
+      // Use program-scoped message sending for auto-title generation
+      if (programId) {
+        await sendProgramMessage({
+          threadId: currentThreadId,
+          prompt: text,
+          programId,
+        })
+      } else {
+        await sendMessage({ threadId: currentThreadId, prompt: text })
+      }
     } catch (error) {
       console.error('Failed to send message:', error)
     } finally {
@@ -100,61 +120,59 @@ export function ChatPanel({
   }
 
   return (
-    <div className="flex flex-col">
-      <div className=" size-full h-[600px]">
-        <div className="flex flex-col h-full">
-          <Conversation>
-            <ConversationContent>
-              <div className="space-y-5 pb-4">
-                {!messages || messages.length === 0 ? (
-                  <div className="text-center text-muted-foreground mt-8">
-                    Ask me anything to get started!
-                  </div>
-                ) : (
-                  messages.map((message: UIMessage) => {
-                    if (
-                      (message.role === 'assistant' &&
-                        message.status === 'pending' &&
-                        message.text === '') ||
-                      (message.role === 'assistant' &&
-                        message.status === 'streaming' &&
-                        message.text === '')
-                    ) {
-                      return null
-                    }
-                    return (
+    <div className="flex h-full flex-col">
+      <div className="min-h-0 flex-1 flex flex-col">
+        <Conversation className="h-full">
+          <ConversationContent>
+            <div className="space-y-5 pb-4">
+              {!messages || messages.length === 0 ? (
+                <div className="text-center text-muted-foreground mt-8">
+                  Ask me anything to get started!
+                </div>
+              ) : (
+                messages.map((message: UIMessage) => {
+                  if (
+                    (message.role === 'assistant' &&
+                      message.status === 'pending' &&
+                      message.text === '') ||
+                    (message.role === 'assistant' &&
+                      message.status === 'streaming' &&
+                      message.text === '')
+                  ) {
+                    return null
+                  }
+                  return (
+                    <div
+                      key={message.key}
+                      className={cn(
+                        'flex',
+                        message.role === 'user' && 'justify-end',
+                      )}
+                    >
                       <div
-                        key={message.key}
                         className={cn(
-                          'flex',
-                          message.role === 'user' && 'justify-end',
+                          'py-2 px-3 rounded-lg max-w-2/3',
+                          message.role === 'user' && 'bg-primary/10',
                         )}
                       >
-                        <div
-                          className={cn(
-                            'py-2 px-3 rounded-lg max-w-2/3',
-                            message.role === 'user' && 'bg-primary/10',
-                          )}
-                        >
-                          <MessageContent
-                            text={message.text ?? ''}
-                            isStreaming={message.status === 'streaming'}
-                          />
-                        </div>
+                        <MessageContent
+                          text={message.text ?? ''}
+                          isStreaming={message.status === 'streaming'}
+                        />
                       </div>
-                    )
-                  })
-                )}
-                {isWaitingForResponse && (
-                  <p className="text-muted-foreground text-sm flex items-center gap-2 pl-3 animate-pulse">
-                    <Loader2 className="size-4 animate-spin" />
-                    Thinking...
-                  </p>
-                )}
-              </div>
-            </ConversationContent>
-          </Conversation>
-        </div>
+                    </div>
+                  )
+                })
+              )}
+              {isWaitingForResponse && (
+                <p className="text-muted-foreground text-sm flex items-center gap-2 pl-3 animate-pulse">
+                  <Loader2 className="size-4 animate-spin" />
+                  Thinking...
+                </p>
+              )}
+            </div>
+          </ConversationContent>
+        </Conversation>
       </div>
       <form onSubmit={handleSubmit} className="p-4 border-t">
         <InputGroup>
