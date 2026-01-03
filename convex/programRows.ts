@@ -1,13 +1,14 @@
-import { mutation, internalMutation } from "./_generated/server";
+import { internalMutation } from "./_generated/server";
 import { v } from "convex/values";
-import { getCurrentUserId, verifyDayOwnership, verifyRowOwnership } from "./helpers/auth";
+import { userMutation } from "./functions";
+import { verifyDayOwnership, verifyRowOwnership } from "./helpers/auth";
 import { getNextRowOrder, renumberRows } from "./helpers/ordering";
 import { exerciseFieldUpdates, headerFieldUpdates } from "./helpers/validators";
 
 /**
  * Add an exercise row to a day.
  */
-export const addExercise = mutation({
+export const addExercise = userMutation({
   args: {
     clientId: v.string(),
     dayId: v.id("days"),
@@ -20,8 +21,7 @@ export const addExercise = mutation({
   },
   returns: v.id("programRows"),
   handler: async (ctx, args) => {
-    const userId = await getCurrentUserId(ctx);
-    await verifyDayOwnership(ctx, args.dayId, userId);
+    await verifyDayOwnership(ctx, args.dayId, ctx.userId);
 
     // Validate exercise exists and user has access (if provided)
     if (args.libraryExerciseId) {
@@ -29,7 +29,7 @@ export const addExercise = mutation({
       if (!exercise) {
         throw new Error("Exercise not found in library");
       }
-      if (exercise.userId !== undefined && exercise.userId !== userId) {
+      if (exercise.userId !== undefined && exercise.userId !== ctx.userId) {
         throw new Error("Not authorized to use this exercise");
       }
     }
@@ -54,15 +54,14 @@ export const addExercise = mutation({
 /**
  * Add an empty exercise row to a day (for grid row creation).
  */
-export const addEmptyExerciseRow = mutation({
+export const addEmptyExerciseRow = userMutation({
   args: {
     clientId: v.string(),
     dayId: v.id("days"),
   },
   returns: v.id("programRows"),
   handler: async (ctx, args) => {
-    const userId = await getCurrentUserId(ctx);
-    await verifyDayOwnership(ctx, args.dayId, userId);
+    await verifyDayOwnership(ctx, args.dayId, ctx.userId);
 
     const order = await getNextRowOrder(ctx, args.dayId);
 
@@ -83,7 +82,7 @@ export const addEmptyExerciseRow = mutation({
 /**
  * Add a header row to a day.
  */
-export const addHeader = mutation({
+export const addHeader = userMutation({
   args: {
     clientId: v.string(),
     dayId: v.id("days"),
@@ -92,8 +91,7 @@ export const addHeader = mutation({
   },
   returns: v.id("programRows"),
   handler: async (ctx, args) => {
-    const userId = await getCurrentUserId(ctx);
-    await verifyDayOwnership(ctx, args.dayId, userId);
+    await verifyDayOwnership(ctx, args.dayId, ctx.userId);
 
     const order = await getNextRowOrder(ctx, args.dayId);
     const groupId = crypto.randomUUID();
@@ -113,7 +111,7 @@ export const addHeader = mutation({
 /**
  * Update a single field on an exercise row.
  */
-export const updateField = mutation({
+export const updateField = userMutation({
   args: {
     rowId: v.id("programRows"),
     field: v.union(
@@ -126,8 +124,7 @@ export const updateField = mutation({
   },
   returns: v.null(),
   handler: async (ctx, args) => {
-    const userId = await getCurrentUserId(ctx);
-    const { row } = await verifyRowOwnership(ctx, args.rowId, userId);
+    const { row } = await verifyRowOwnership(ctx, args.rowId, ctx.userId);
 
     if (row.kind !== "exercise") {
       throw new Error("Row is not an exercise");
@@ -146,7 +143,7 @@ export const updateField = mutation({
  * Batch update multiple rows, grouping all field changes per row.
  * More efficient than calling updateField multiple times.
  */
-export const batchUpdateRows = mutation({
+export const batchUpdateRows = userMutation({
   args: {
     updates: v.array(
       v.object({
@@ -165,13 +162,11 @@ export const batchUpdateRows = mutation({
   },
   returns: v.null(),
   handler: async (ctx, args) => {
-    const userId = await getCurrentUserId(ctx);
-
     // Looping is efficient here: Convex queues all db changes and executes
     // them in a single transaction when the mutation ends.
     // See: https://docs.convex.dev/database/writing-data#bulk-inserts-or-updates
     for (const update of args.updates) {
-      const { row } = await verifyRowOwnership(ctx, update.rowId, userId);
+      const { row } = await verifyRowOwnership(ctx, update.rowId, ctx.userId);
       if (row.kind !== "exercise") continue;
 
       // Validate libraryExerciseId if being updated
@@ -180,7 +175,7 @@ export const batchUpdateRows = mutation({
         if (!exercise) {
           throw new Error("Exercise not found in library");
         }
-        if (exercise.userId !== undefined && exercise.userId !== userId) {
+        if (exercise.userId !== undefined && exercise.userId !== ctx.userId) {
           throw new Error("Not authorized to use this exercise");
         }
       }
@@ -194,15 +189,14 @@ export const batchUpdateRows = mutation({
 /**
  * Update an exercise row's fields.
  */
-export const updateExercise = mutation({
+export const updateExercise = userMutation({
   args: {
     rowId: v.id("programRows"),
     updates: exerciseFieldUpdates,
   },
   returns: v.null(),
   handler: async (ctx, args) => {
-    const userId = await getCurrentUserId(ctx);
-    const { row } = await verifyRowOwnership(ctx, args.rowId, userId);
+    const { row } = await verifyRowOwnership(ctx, args.rowId, ctx.userId);
 
     if (row.kind !== "exercise") {
       throw new Error("Row is not an exercise");
@@ -214,7 +208,7 @@ export const updateExercise = mutation({
       if (!exercise) {
         throw new Error("Exercise not found in library");
       }
-      if (exercise.userId !== undefined && exercise.userId !== userId) {
+      if (exercise.userId !== undefined && exercise.userId !== ctx.userId) {
         throw new Error("Not authorized to use this exercise");
       }
     }
@@ -257,15 +251,14 @@ export const updateExercise = mutation({
 /**
  * Update a header row's fields.
  */
-export const updateHeader = mutation({
+export const updateHeader = userMutation({
   args: {
     rowId: v.id("programRows"),
     updates: headerFieldUpdates,
   },
   returns: v.null(),
   handler: async (ctx, args) => {
-    const userId = await getCurrentUserId(ctx);
-    const { row } = await verifyRowOwnership(ctx, args.rowId, userId);
+    const { row } = await verifyRowOwnership(ctx, args.rowId, ctx.userId);
 
     if (row.kind !== "header") {
       throw new Error("Row is not a header");
@@ -290,14 +283,13 @@ export const updateHeader = mutation({
 /**
  * Delete a single row.
  */
-export const deleteRow = mutation({
+export const deleteRow = userMutation({
   args: {
     rowId: v.id("programRows"),
   },
   returns: v.null(),
   handler: async (ctx, args) => {
-    const userId = await getCurrentUserId(ctx);
-    const { row } = await verifyRowOwnership(ctx, args.rowId, userId);
+    const { row } = await verifyRowOwnership(ctx, args.rowId, ctx.userId);
 
     await ctx.db.delete(args.rowId);
     await renumberRows(ctx, row.dayId);
@@ -309,7 +301,7 @@ export const deleteRow = mutation({
 /**
  * Batch delete multiple rows.
  */
-export const batchDeleteRows = mutation({
+export const batchDeleteRows = userMutation({
   args: {
     rowIds: v.array(v.id("programRows")),
   },
@@ -317,13 +309,11 @@ export const batchDeleteRows = mutation({
   handler: async (ctx, args) => {
     if (args.rowIds.length === 0) return null;
 
-    const userId = await getCurrentUserId(ctx);
-
     // Track which days need renumbering
     const dayIds = new Set<string>();
 
     for (const rowId of args.rowIds) {
-      const { row } = await verifyRowOwnership(ctx, rowId, userId);
+      const { row } = await verifyRowOwnership(ctx, rowId, ctx.userId);
       dayIds.add(row.dayId);
       await ctx.db.delete(rowId);
     }
@@ -340,14 +330,13 @@ export const batchDeleteRows = mutation({
 /**
  * Delete a header and all exercises in its group.
  */
-export const deleteGroup = mutation({
+export const deleteGroup = userMutation({
   args: {
     headerRowId: v.id("programRows"),
   },
   returns: v.null(),
   handler: async (ctx, args) => {
-    const userId = await getCurrentUserId(ctx);
-    const { row } = await verifyRowOwnership(ctx, args.headerRowId, userId);
+    const { row } = await verifyRowOwnership(ctx, args.headerRowId, ctx.userId);
 
     if (row.kind !== "header") {
       throw new Error("Row is not a header");
@@ -376,7 +365,7 @@ export const deleteGroup = mutation({
  * Move a row to a new position.
  * Validates fromOrder to detect stale tool calls.
  */
-export const moveRow = mutation({
+export const moveRow = userMutation({
   args: {
     rowId: v.id("programRows"),
     fromOrder: v.number(),
@@ -384,8 +373,7 @@ export const moveRow = mutation({
   },
   returns: v.null(),
   handler: async (ctx, args) => {
-    const userId = await getCurrentUserId(ctx);
-    const { row } = await verifyRowOwnership(ctx, args.rowId, userId);
+    const { row } = await verifyRowOwnership(ctx, args.rowId, ctx.userId);
 
     // Validate current position matches expected
     if (row.order !== args.fromOrder) {
@@ -424,15 +412,14 @@ export const moveRow = mutation({
 /**
  * Add an exercise to a group (set its groupId).
  */
-export const groupExercise = mutation({
+export const groupExercise = userMutation({
   args: {
     exerciseRowId: v.id("programRows"),
     groupId: v.string(),
   },
   returns: v.null(),
   handler: async (ctx, args) => {
-    const userId = await getCurrentUserId(ctx);
-    const { row } = await verifyRowOwnership(ctx, args.exerciseRowId, userId);
+    const { row } = await verifyRowOwnership(ctx, args.exerciseRowId, ctx.userId);
 
     if (row.kind !== "exercise") {
       throw new Error("Row is not an exercise");
@@ -458,14 +445,13 @@ export const groupExercise = mutation({
 /**
  * Remove an exercise from its group (clear groupId).
  */
-export const ungroupExercise = mutation({
+export const ungroupExercise = userMutation({
   args: {
     exerciseRowId: v.id("programRows"),
   },
   returns: v.null(),
   handler: async (ctx, args) => {
-    const userId = await getCurrentUserId(ctx);
-    const { row } = await verifyRowOwnership(ctx, args.exerciseRowId, userId);
+    const { row } = await verifyRowOwnership(ctx, args.exerciseRowId, ctx.userId);
 
     if (row.kind !== "exercise") {
       throw new Error("Row is not an exercise");

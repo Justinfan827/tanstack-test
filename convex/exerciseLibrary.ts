@@ -1,11 +1,11 @@
-import { mutation, query, internalQuery, internalMutation } from "./_generated/server";
+import { internalQuery, internalMutation } from "./_generated/server";
 import { v } from "convex/values";
-import { getCurrentUserId } from "./helpers/auth";
+import { userQuery, userMutation } from "./functions";
 
 /**
  * List all exercises available to user (global + user's own).
  */
-export const listExercises = query({
+export const listExercises = userQuery({
   args: {},
   returns: v.array(
     v.object({
@@ -16,8 +16,6 @@ export const listExercises = query({
     })
   ),
   handler: async (ctx) => {
-    const userId = await getCurrentUserId(ctx);
-
     // Get global exercises (userId = undefined)
     const globalExercises = await ctx.db
       .query("exerciseLibrary")
@@ -27,7 +25,7 @@ export const listExercises = query({
     // Get user's exercises
     const userExercises = await ctx.db
       .query("exerciseLibrary")
-      .withIndex("by_user", (q) => q.eq("userId", userId))
+      .withIndex("by_user", (q) => q.eq("userId", ctx.userId))
       .collect();
 
     return [
@@ -50,7 +48,7 @@ export const listExercises = query({
 /**
  * Search exercises by name (full-text search).
  */
-export const searchExercises = query({
+export const searchExercises = userQuery({
   args: {
     query: v.string(),
   },
@@ -63,8 +61,6 @@ export const searchExercises = query({
     })
   ),
   handler: async (ctx, args) => {
-    const userId = await getCurrentUserId(ctx);
-
     if (!args.query.trim()) {
       // Empty query - return all exercises
       const globalExercises = await ctx.db
@@ -74,7 +70,7 @@ export const searchExercises = query({
 
       const userExercises = await ctx.db
         .query("exerciseLibrary")
-        .withIndex("by_user", (q) => q.eq("userId", userId))
+        .withIndex("by_user", (q) => q.eq("userId", ctx.userId))
         .collect();
 
       return [
@@ -101,7 +97,7 @@ export const searchExercises = query({
 
     // Filter to only global + user's exercises
     const filtered = results.filter(
-      (e) => e.userId === undefined || e.userId === userId
+      (e) => e.userId === undefined || e.userId === ctx.userId
     );
 
     return filtered.map((e) => ({
@@ -116,17 +112,15 @@ export const searchExercises = query({
 /**
  * Add a custom exercise for the current user.
  */
-export const addExercise = mutation({
+export const addExercise = userMutation({
   args: {
     name: v.string(),
   },
   returns: v.id("exerciseLibrary"),
   handler: async (ctx, args) => {
-    const userId = await getCurrentUserId(ctx);
-
     return await ctx.db.insert("exerciseLibrary", {
       name: args.name,
-      userId,
+      userId: ctx.userId,
     });
   },
 });
@@ -134,14 +128,12 @@ export const addExercise = mutation({
 /**
  * Delete a custom exercise (only if owned by user).
  */
-export const deleteExercise = mutation({
+export const deleteExercise = userMutation({
   args: {
     exerciseId: v.id("exerciseLibrary"),
   },
   returns: v.null(),
   handler: async (ctx, args) => {
-    const userId = await getCurrentUserId(ctx);
-
     const exercise = await ctx.db.get(args.exerciseId);
     if (!exercise) {
       throw new Error("Exercise not found");
@@ -151,7 +143,7 @@ export const deleteExercise = mutation({
       throw new Error("Cannot delete global exercises");
     }
 
-    if (exercise.userId !== userId) {
+    if (exercise.userId !== ctx.userId) {
       throw new Error("Not authorized");
     }
 
@@ -164,7 +156,7 @@ export const deleteExercise = mutation({
 /**
  * Get a single exercise by ID.
  */
-export const getExercise = query({
+export const getExercise = userQuery({
   args: {
     exerciseId: v.id("exerciseLibrary"),
   },
@@ -178,15 +170,13 @@ export const getExercise = query({
     })
   ),
   handler: async (ctx, args) => {
-    const userId = await getCurrentUserId(ctx);
-
     const exercise = await ctx.db.get(args.exerciseId);
     if (!exercise) {
       return null;
     }
 
     // Check access
-    if (exercise.userId !== undefined && exercise.userId !== userId) {
+    if (exercise.userId !== undefined && exercise.userId !== ctx.userId) {
       return null;
     }
 

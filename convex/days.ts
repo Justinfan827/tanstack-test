@@ -1,6 +1,7 @@
-import { mutation, internalMutation, MutationCtx } from "./_generated/server";
+import { internalMutation, MutationCtx } from "./_generated/server";
 import { v } from "convex/values";
-import { getCurrentUserId, verifyProgramOwnership, verifyDayOwnership } from "./helpers/auth";
+import { userMutation } from "./functions";
+import { verifyProgramOwnership, verifyDayOwnership } from "./helpers/auth";
 import { getNextDayOrder, renumberDays, deleteRowsForDay } from "./helpers/ordering";
 import { rowInput } from "./helpers/validators";
 import { Id } from "./_generated/dataModel";
@@ -63,7 +64,7 @@ async function insertRowsForDay(
 /**
  * Add a day to a program.
  */
-export const addDay = mutation({
+export const addDay = userMutation({
   args: {
     programId: v.id("programs"),
     dayLabel: v.string(),
@@ -71,8 +72,7 @@ export const addDay = mutation({
   },
   returns: v.id("days"),
   handler: async (ctx, args) => {
-    const userId = await getCurrentUserId(ctx);
-    await verifyProgramOwnership(ctx, args.programId, userId);
+    await verifyProgramOwnership(ctx, args.programId, ctx.userId);
 
     const order = await getNextDayOrder(ctx, args.programId);
 
@@ -94,15 +94,14 @@ export const addDay = mutation({
 /**
  * Update a day's label.
  */
-export const updateDay = mutation({
+export const updateDay = userMutation({
   args: {
     dayId: v.id("days"),
     dayLabel: v.string(),
   },
   returns: v.null(),
   handler: async (ctx, args) => {
-    const userId = await getCurrentUserId(ctx);
-    await verifyDayOwnership(ctx, args.dayId, userId);
+    await verifyDayOwnership(ctx, args.dayId, ctx.userId);
 
     await ctx.db.patch(args.dayId, { dayLabel: args.dayLabel });
 
@@ -113,14 +112,13 @@ export const updateDay = mutation({
 /**
  * Delete a day and all its rows.
  */
-export const deleteDay = mutation({
+export const deleteDay = userMutation({
   args: {
     dayId: v.id("days"),
   },
   returns: v.null(),
   handler: async (ctx, args) => {
-    const userId = await getCurrentUserId(ctx);
-    const { day } = await verifyDayOwnership(ctx, args.dayId, userId);
+    const { day } = await verifyDayOwnership(ctx, args.dayId, ctx.userId);
 
     await deleteRowsForDay(ctx, args.dayId);
     await ctx.db.delete(args.dayId);
@@ -134,7 +132,7 @@ export const deleteDay = mutation({
  * Move a day to a new position.
  * Validates fromOrder to detect stale tool calls.
  */
-export const moveDay = mutation({
+export const moveDay = userMutation({
   args: {
     dayId: v.id("days"),
     fromOrder: v.number(),
@@ -142,8 +140,7 @@ export const moveDay = mutation({
   },
   returns: v.null(),
   handler: async (ctx, args) => {
-    const userId = await getCurrentUserId(ctx);
-    const { day } = await verifyDayOwnership(ctx, args.dayId, userId);
+    const { day } = await verifyDayOwnership(ctx, args.dayId, ctx.userId);
 
     if (day.order !== args.fromOrder) {
       throw new Error(
@@ -178,14 +175,13 @@ export const moveDay = mutation({
 /**
  * Duplicate a day within the same program.
  */
-export const duplicateDay = mutation({
+export const duplicateDay = userMutation({
   args: {
     dayId: v.id("days"),
   },
   returns: v.id("days"),
   handler: async (ctx, args) => {
-    const userId = await getCurrentUserId(ctx);
-    const { day } = await verifyDayOwnership(ctx, args.dayId, userId);
+    const { day } = await verifyDayOwnership(ctx, args.dayId, ctx.userId);
 
     const order = await getNextDayOrder(ctx, day.programId);
 
@@ -251,15 +247,14 @@ export const duplicateDay = mutation({
 /**
  * Replace all rows in a day (bulk operation for AI rewrites).
  */
-export const replaceDay = mutation({
+export const replaceDay = userMutation({
   args: {
     dayId: v.id("days"),
     rows: v.array(rowInput),
   },
   returns: v.null(),
   handler: async (ctx, args) => {
-    const userId = await getCurrentUserId(ctx);
-    await verifyDayOwnership(ctx, args.dayId, userId);
+    await verifyDayOwnership(ctx, args.dayId, ctx.userId);
 
     // Delete existing rows
     await deleteRowsForDay(ctx, args.dayId);

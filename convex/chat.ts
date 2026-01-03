@@ -11,41 +11,38 @@ import { paginationOptsValidator } from "convex/server";
 import { v } from "convex/values";
 
 import { components, internal } from "./_generated/api";
-import { internalAction, mutation, query } from "./_generated/server";
+import { internalAction } from "./_generated/server";
+import { userQuery, userMutation } from "./functions";
 import { createProgramAgent, workoutAgent } from "./agent";
-import { getCurrentUserId, verifyThreadOwnership } from "./helpers/auth";
+import { verifyThreadOwnership } from "./helpers/auth";
 
-export const createNewThread = mutation({
+export const createNewThread = userMutation({
   args: {},
   handler: async (ctx) => {
-    // Get authenticated user and pass to thread so agent tools can access it
-    const userId = await getCurrentUserId(ctx);
-    const threadId = await createThread(ctx, components.agent, { userId });
+    const threadId = await createThread(ctx, components.agent, { userId: ctx.userId });
     return threadId;
   },
 });
 
-export const listUserThreads = query({
+export const listUserThreads = userQuery({
   args: {},
   handler: async (ctx) => {
-    const userId = await getCurrentUserId(ctx);
     const result = await ctx.runQuery(
       components.agent.threads.listThreadsByUserId,
-      { userId, paginationOpts: { numItems: 50, cursor: null } }
+      { userId: ctx.userId, paginationOpts: { numItems: 50, cursor: null } }
     );
     return result.page;
   },
 });
 
-export const listMessages = query({
+export const listMessages = userQuery({
   args: {
     threadId: v.string(),
     paginationOpts: paginationOptsValidator,
     streamArgs: vStreamArgs,
   },
   handler: async (ctx, args) => {
-    const userId = await getCurrentUserId(ctx);
-    await verifyThreadOwnership(ctx, args.threadId, userId);
+    await verifyThreadOwnership(ctx, args.threadId, ctx.userId);
 
     const paginated = await listUIMessages(ctx, components.agent, args);
     const streams = await syncStreams(ctx, components.agent, args);
@@ -53,14 +50,13 @@ export const listMessages = query({
   },
 });
 
-export const sendMessage = mutation({
+export const sendMessage = userMutation({
   args: {
     threadId: v.string(),
     prompt: v.string(),
   },
   handler: async (ctx, { threadId, prompt }) => {
-    const userId = await getCurrentUserId(ctx);
-    await verifyThreadOwnership(ctx, threadId, userId);
+    await verifyThreadOwnership(ctx, threadId, ctx.userId);
 
     const { messageId } = await saveMessage(ctx, components.agent, {
       threadId,
@@ -91,19 +87,18 @@ export const generateResponseAsync = internalAction({
 // ============================================================================
 
 // Create a new thread linked to a program
-export const createProgramThread = mutation({
+export const createProgramThread = userMutation({
   args: { programId: v.id("programs") },
   returns: v.string(),
   handler: async (ctx, { programId }) => {
-    const userId = await getCurrentUserId(ctx);
-    const threadId = await createThread(ctx, components.agent, { userId });
-    await ctx.db.insert("programThreads", { programId, threadId, userId });
+    const threadId = await createThread(ctx, components.agent, { userId: ctx.userId });
+    await ctx.db.insert("programThreads", { programId, threadId, userId: ctx.userId });
     return threadId;
   },
 });
 
 // List threads for a program (most recent first)
-export const listProgramThreads = query({
+export const listProgramThreads = userQuery({
   args: { programId: v.id("programs") },
   returns: v.array(
     v.object({
@@ -115,7 +110,6 @@ export const listProgramThreads = query({
     })
   ),
   handler: async (ctx, { programId }) => {
-    await getCurrentUserId(ctx); // Auth check
     const links = await ctx.db
       .query("programThreads")
       .withIndex("by_program", (q) => q.eq("programId", programId))
@@ -148,11 +142,10 @@ export const listProgramThreads = query({
 });
 
 // Get most recent thread for program (returns null if none exist)
-export const getMostRecentProgramThread = query({
+export const getMostRecentProgramThread = userQuery({
   args: { programId: v.id("programs") },
   returns: v.union(v.string(), v.null()),
   handler: async (ctx, { programId }) => {
-    await getCurrentUserId(ctx); // Auth check
     const existing = await ctx.db
       .query("programThreads")
       .withIndex("by_program", (q) => q.eq("programId", programId))
@@ -164,7 +157,7 @@ export const getMostRecentProgramThread = query({
 });
 
 // Send message with auto-title generation for first message
-export const sendProgramMessage = mutation({
+export const sendProgramMessage = userMutation({
   args: {
     threadId: v.string(),
     prompt: v.string(),
@@ -172,11 +165,9 @@ export const sendProgramMessage = mutation({
   },
   returns: v.string(),
   handler: async (ctx, { threadId, prompt, programId }) => {
-    const userId = await getCurrentUserId(ctx);
-
     // Verify user owns the program
     const program = await ctx.db.get(programId);
-    if (!program || program.userId !== userId) {
+    if (!program || program.userId !== ctx.userId) {
       throw new Error("Program not found or not authorized");
     }
 
@@ -186,7 +177,7 @@ export const sendProgramMessage = mutation({
       .withIndex("by_thread", (q) => q.eq("threadId", threadId))
       .first();
 
-    if (!programThread || programThread.programId !== programId || programThread.userId !== userId) {
+    if (!programThread || programThread.programId !== programId || programThread.userId !== ctx.userId) {
       throw new Error("Thread not linked to this program or not authorized");
     }
 

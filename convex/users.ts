@@ -1,7 +1,8 @@
-import { query, mutation } from "./_generated/server"
+import { query } from "./_generated/server"
 import { v } from "convex/values";
+import { userQuery, userMutation } from "./functions";
 import { authComponent, createAuth } from "./auth";
-import { getCurrentUserId, enrichUserWithAuth, enrichUsersWithAuth, generateTemporaryPassword } from "./helpers/auth";
+import { enrichUserWithAuth, enrichUsersWithAuth, generateTemporaryPassword } from "./helpers/auth";
 
 export const getCurrentUser = query({
   args: {},
@@ -27,7 +28,7 @@ export const getCurrentUser = query({
 /**
  * Get all clients for the current trainer.
  */
-export const getAllClients = query({
+export const getAllClients = userQuery({
   args: {},
   returns: v.array(
     v.object({
@@ -56,11 +57,9 @@ export const getAllClients = query({
     })
   ),
   handler: async (ctx) => {
-    const userId = await getCurrentUserId(ctx);
-    
     const clients = await ctx.db
       .query("users")
-      .withIndex("by_trainer_id", (q) => q.eq("trainerId", userId))
+      .withIndex("by_trainer_id", (q) => q.eq("trainerId", ctx.userId))
       .collect();
 
     return await enrichUsersWithAuth(ctx, clients);
@@ -70,7 +69,7 @@ export const getAllClients = query({
 /**
  * Get a client by ID (only if current user is their trainer).
  */
-export const getClientById = query({
+export const getClientById = userQuery({
   args: { clientId: v.id("users") },
   returns: v.union(
     v.null(),
@@ -100,10 +99,8 @@ export const getClientById = query({
     })
   ),
   handler: async (ctx, args) => {
-    const userId = await getCurrentUserId(ctx);
-    
     const client = await ctx.db.get(args.clientId);
-    if (!client || client.trainerId !== userId) {
+    if (!client || client.trainerId !== ctx.userId) {
       return null;
     }
 
@@ -114,7 +111,7 @@ export const getClientById = query({
 /**
  * Create a new client for the current trainer.
  */
-export const createClient = mutation({
+export const createClient = userMutation({
   args: {
     // Basic info (stored in Better Auth)
     name: v.string(), // "FirstName LastName"
@@ -134,8 +131,6 @@ export const createClient = mutation({
     temporaryPassword: v.string(),
   }),
   handler: async (ctx, args) => {
-    const userId = await getCurrentUserId(ctx);
-
     // 1. Generate secure temporary password
     const temporaryPassword = generateTemporaryPassword();
 
@@ -161,7 +156,7 @@ export const createClient = mutation({
       authId: authResult.user.id,
       role: "client",
       trustMode: "high", // default
-      trainerId: userId,
+      trainerId: ctx.userId,
       
       // Fitness data
       age: args.age,
@@ -183,14 +178,12 @@ export const createClient = mutation({
 /**
  * Remove a client from the current trainer.
  */
-export const removeClient = mutation({
+export const removeClient = userMutation({
   args: { clientId: v.id("users") },
   returns: v.null(),
   handler: async (ctx, args) => {
-    const userId = await getCurrentUserId(ctx);
-    
     const client = await ctx.db.get(args.clientId);
-    if (!client || client.trainerId !== userId) {
+    if (!client || client.trainerId !== ctx.userId) {
       throw new Error("Client not found or not owned by trainer");
     }
 

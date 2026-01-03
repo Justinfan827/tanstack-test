@@ -1,6 +1,7 @@
-import { mutation, query, internalMutation, internalQuery, MutationCtx } from "./_generated/server";
+import { internalMutation, internalQuery, MutationCtx } from "./_generated/server";
 import { v } from "convex/values";
-import { getCurrentUserId, verifyProgramOwnership } from "./helpers/auth";
+import { userQuery, userMutation } from "./functions";
+import { verifyProgramOwnership } from "./helpers/auth";
 import { deleteDaysForProgram } from "./helpers/ordering";
 import { dayInput } from "./helpers/validators";
 import { Id } from "./_generated/dataModel";
@@ -78,18 +79,16 @@ async function insertDaysForProgram(
 /**
  * Create a new program.
  */
-export const createProgram = mutation({
+export const createProgram = userMutation({
   args: {
     name: v.string(),
     days: v.optional(v.array(dayInput)),
   },
   returns: v.id("programs"),
   handler: async (ctx, args) => {
-    const userId = await getCurrentUserId(ctx);
-
     const programId = await ctx.db.insert("programs", {
       name: args.name,
-      userId,
+      userId: ctx.userId,
     });
 
     if (args.days && args.days.length > 0) {
@@ -103,15 +102,14 @@ export const createProgram = mutation({
 /**
  * Update a program's name.
  */
-export const updateProgram = mutation({
+export const updateProgram = userMutation({
   args: {
     programId: v.id("programs"),
     name: v.string(),
   },
   returns: v.null(),
   handler: async (ctx, args) => {
-    const userId = await getCurrentUserId(ctx);
-    await verifyProgramOwnership(ctx, args.programId, userId);
+    await verifyProgramOwnership(ctx, args.programId, ctx.userId);
 
     await ctx.db.patch(args.programId, { name: args.name });
 
@@ -122,14 +120,13 @@ export const updateProgram = mutation({
 /**
  * Delete a program and all its days/rows.
  */
-export const deleteProgram = mutation({
+export const deleteProgram = userMutation({
   args: {
     programId: v.id("programs"),
   },
   returns: v.null(),
   handler: async (ctx, args) => {
-    const userId = await getCurrentUserId(ctx);
-    await verifyProgramOwnership(ctx, args.programId, userId);
+    await verifyProgramOwnership(ctx, args.programId, ctx.userId);
 
     await deleteDaysForProgram(ctx, args.programId);
     await ctx.db.delete(args.programId);
@@ -141,18 +138,17 @@ export const deleteProgram = mutation({
 /**
  * Duplicate a program.
  */
-export const duplicateProgram = mutation({
+export const duplicateProgram = userMutation({
   args: {
     programId: v.id("programs"),
   },
   returns: v.id("programs"),
   handler: async (ctx, args) => {
-    const userId = await getCurrentUserId(ctx);
-    const program = await verifyProgramOwnership(ctx, args.programId, userId);
+    const program = await verifyProgramOwnership(ctx, args.programId, ctx.userId);
 
     const newProgramId = await ctx.db.insert("programs", {
       name: `${program.name} (copy)`,
-      userId,
+      userId: ctx.userId,
     });
 
     // Get all days
@@ -225,15 +221,14 @@ export const duplicateProgram = mutation({
 /**
  * Replace entire program contents (bulk operation for AI rewrites).
  */
-export const replaceProgram = mutation({
+export const replaceProgram = userMutation({
   args: {
     programId: v.id("programs"),
     days: v.array(dayInput),
   },
   returns: v.null(),
   handler: async (ctx, args) => {
-    const userId = await getCurrentUserId(ctx);
-    await verifyProgramOwnership(ctx, args.programId, userId);
+    await verifyProgramOwnership(ctx, args.programId, ctx.userId);
 
     // Delete existing days and rows
     await deleteDaysForProgram(ctx, args.programId);
@@ -248,7 +243,7 @@ export const replaceProgram = mutation({
 /**
  * List user's programs (summary only).
  */
-export const listUserPrograms = query({
+export const listUserPrograms = userQuery({
   args: {},
   returns: v.array(
     v.object({
@@ -259,11 +254,9 @@ export const listUserPrograms = query({
     })
   ),
   handler: async (ctx) => {
-    const userId = await getCurrentUserId(ctx);
-
     const programs = await ctx.db
       .query("programs")
-      .withIndex("by_user", (q) => q.eq("userId", userId))
+      .withIndex("by_user", (q) => q.eq("userId", ctx.userId))
       .collect();
 
     const result = [];
@@ -288,7 +281,7 @@ export const listUserPrograms = query({
 /**
  * Get full program with all days and rows (denormalized for UI).
  */
-export const getProgram = query({
+export const getProgram = userQuery({
   args: {
     programId: v.id("programs"),
   },
@@ -339,10 +332,8 @@ export const getProgram = query({
     })
   ),
   handler: async (ctx, args) => {
-    const userId = await getCurrentUserId(ctx);
-
     const program = await ctx.db.get(args.programId);
-    if (!program || program.userId !== userId) {
+    if (!program || program.userId !== ctx.userId) {
       return null;
     }
 

@@ -1,24 +1,15 @@
-import { ConvexError } from "convex/values";
-import { mutation } from './_generated/server'
 import { v } from 'convex/values'
-import { createAuth } from "./auth";
-
-const checkSecret = (value: string) => {
-  if (process.env.API_ADMIN_SECRET !== value) {
-    throw new ConvexError("API endpoint failed validation");
-  }
-}
+import { adminMutation } from "./functions"
+import { createAuth } from "./auth"
 
 // Create an admin user
-export const createAdminUser = mutation({
+export const createAdminUser = adminMutation({
   args: {
-    secret: v.string(),
     name: v.string(),
     email: v.string(),
     password: v.string(),
   },
   handler: async (ctx, args) => {
-    checkSecret(args.secret)
     const { name, email, password } = args
     const auth = createAuth(ctx)
     try {
@@ -37,14 +28,11 @@ export const createAdminUser = mutation({
 })
 
 // Delete an admin user
-
-export const deleteAdminUser = mutation({
+export const deleteAdminUser = adminMutation({
   args: {
-    secret: v.string(),
     password: v.string(),
   },
   handler: async (ctx, args) => {
-    checkSecret(args.secret)
     const { password } = args
     const auth = createAuth(ctx)
     await auth.api.deleteUser({

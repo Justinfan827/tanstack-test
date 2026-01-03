@@ -14,6 +14,7 @@ import type * as auth from "../auth.js";
 import type * as chat from "../chat.js";
 import type * as days from "../days.js";
 import type * as exerciseLibrary from "../exerciseLibrary.js";
+import type * as functions from "../functions.js";
 import type * as helpers_auth from "../helpers/auth.js";
 import type * as helpers_ordering from "../helpers/ordering.js";
 import type * as helpers_validators from "../helpers/validators.js";
@@ -37,6 +38,7 @@ declare const fullApi: ApiFromModules<{
   chat: typeof chat;
   days: typeof days;
   exerciseLibrary: typeof exerciseLibrary;
+  functions: typeof functions;
   "helpers/auth": typeof helpers_auth;
   "helpers/ordering": typeof helpers_ordering;
   "helpers/validators": typeof helpers_validators;
