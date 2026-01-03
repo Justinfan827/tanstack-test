@@ -1,8 +1,8 @@
 import { query } from "./_generated/server"
-import { v } from "convex/values";
-import { userQuery, userMutation } from "./functions";
-import { authComponent, createAuth } from "./auth";
-import { enrichUserWithAuth, enrichUsersWithAuth, generateTemporaryPassword } from "./helpers/auth";
+import { v } from "convex/values"
+import { userQuery, userMutation } from "./functions"
+import { authComponent, createAuth } from "./auth"
+import { enrichUserWithAuth, enrichUsersWithAuth, generateTemporaryPassword } from "./helpers/auth"
 
 export const getCurrentUser = query({
   args: {},
@@ -22,6 +22,35 @@ export const getCurrentUser = query({
     }
     
     return await enrichUserWithAuth(ctx, user);
+  },
+})
+
+/**
+ * Get user profile by ID (public - for displaying client info on program links).
+ */
+export const getUserProfile = query({
+  args: { userId: v.id("users") },
+  returns: v.union(
+    v.null(),
+    v.object({
+      _id: v.id("users"),
+      name: v.string(),
+      image: v.optional(v.string()),
+    })
+  ),
+  handler: async (ctx, args) => {
+    const user = await ctx.db.get(args.userId)
+    if (!user) {
+      return null
+    }
+
+    // Enrich with auth data to get name and image
+    const enriched = await enrichUserWithAuth(ctx, user)
+    return {
+      _id: enriched._id,
+      name: enriched.name,
+      image: enriched.image,
+    }
   },
 })
 

@@ -57,6 +57,7 @@ export function DataGridColumnHeader<TData, TValue>({
 
   const cellVariant = column.columnDef.meta?.cell
   const columnVariant = getColumnVariant(cellVariant?.variant)
+  const simpleHeader = column.columnDef.meta?.simpleHeader
 
   const pinnedPosition = column.getIsPinned()
   const isPinnedLeft = pinnedPosition === 'left'
@@ -115,6 +116,19 @@ export function DataGridColumnHeader<TData, TValue>({
     },
     [table.options.meta, column.id, onPointerDown],
   )
+
+  if (simpleHeader) {
+    return (
+      <>
+        <div className="flex size-full items-center p-2 text-sm">
+          <span className="truncate">{label}</span>
+        </div>
+        {header.column.getCanResize() && (
+          <DataGridColumnResizer header={header} table={table} label={label} />
+        )}
+      </>
+    )
+  }
 
   return (
     <>

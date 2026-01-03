@@ -21,6 +21,7 @@ import type * as helpers_ordering from "../helpers/ordering.js";
 import type * as helpers_validators from "../helpers/validators.js";
 import type * as http from "../http.js";
 import type * as playground from "../playground.js";
+import type * as programLinks from "../programLinks.js";
 import type * as programRows from "../programRows.js";
 import type * as programs from "../programs.js";
 import type * as tools from "../tools.js";
@@ -46,6 +47,7 @@ declare const fullApi: ApiFromModules<{
   "helpers/validators": typeof helpers_validators;
   http: typeof http;
   playground: typeof playground;
+  programLinks: typeof programLinks;
   programRows: typeof programRows;
   programs: typeof programs;
   tools: typeof tools;

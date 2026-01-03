@@ -124,6 +124,17 @@ export default defineSchema({
     .index("by_program", ["programId"])
     .index("by_thread", ["threadId"]),
 
+  // Public shareable links to programs
+  programLinks: defineTable({
+    userId: v.id("users"), // trainer who created the link
+    clientId: v.id("users"),
+    programId: v.id("programs"),
+    trainerNotes: v.string(),
+  })
+    .index("by_user_id", ["userId"])
+    .index("by_client_id", ["clientId"])
+    .index("by_program_id", ["programId"]),
+
   // TODO: Pending changes tables for low trust mode
   // - pendingExerciseFieldUpdates
   // - pendingExerciseAdds

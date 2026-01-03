@@ -1,5 +1,4 @@
-import { useEffect, useState } from 'react'
-import { Wand2 } from 'lucide-react'
+import { useEffect, useState, useSyncExternalStore } from 'react'
 import {
   getMinimized,
   setMinimized,
@@ -13,6 +12,67 @@ import { FormPanel } from '@/features/dev-tools/panels/form-panel'
 
 const TABS = ['focus', 'forms'] as const
 type Tab = (typeof TABS)[number]
+
+// Tailwind v4 default breakpoints
+const BREAKPOINTS = [
+  { name: 'xs', min: 0 },
+  { name: 'sm', min: 640 },
+  { name: 'md', min: 768 },
+  { name: 'lg', min: 1024 },
+  { name: 'xl', min: 1280 },
+  { name: '2xl', min: 1536 },
+] as const
+
+function getBreakpoint(width: number): string {
+  for (let i = BREAKPOINTS.length - 1; i >= 0; i--) {
+    if (width >= BREAKPOINTS[i].min) {
+      return BREAKPOINTS[i].name
+    }
+  }
+  return 'xs'
+}
+
+function subscribeToResize(callback: () => void) {
+  window.addEventListener('resize', callback)
+  return () => window.removeEventListener('resize', callback)
+}
+
+function getWindowWidth() {
+  return typeof window !== 'undefined' ? window.innerWidth : 0
+}
+
+function useWindowWidth() {
+  return useSyncExternalStore(subscribeToResize, getWindowWidth, () => 0)
+}
+
+function WidthIndicator({ onClick }: { onClick: () => void }) {
+  const width = useWindowWidth()
+  const bp = getBreakpoint(width)
+
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      style={{
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: 6,
+        padding: '8px 12px',
+        background: 'none',
+        border: 'none',
+        cursor: 'pointer',
+        width: '100%',
+        color: '#0f0',
+        fontFamily: 'monospace',
+        fontSize: 12,
+      }}
+    >
+      <span style={{ fontWeight: 'bold' }}>{bp}</span>
+      <span style={{ opacity: 0.7 }}>{width}px</span>
+    </button>
+  )
+}
 
 export function DevToolsPanel() {
   const [minimized, setMinimizedState] = useState(getMinimized)
@@ -102,23 +162,7 @@ export function DevToolsPanel() {
       >
         {/* Header */}
         {minimized ? (
-          <button
-            type="button"
-            onClick={handleToggleMinimize}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: 8,
-              padding: 12,
-              background: 'none',
-              border: 'none',
-              cursor: 'pointer',
-              width: '100%',
-            }}
-          >
-            <Wand2 size={20} style={{ color: '#0f0' }} />
-          </button>
+          <WidthIndicator onClick={handleToggleMinimize} />
         ) : (
           <div
             style={{

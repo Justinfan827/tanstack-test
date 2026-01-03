@@ -14,6 +14,7 @@ import { Route as LoginRouteImport } from './routes/login'
 import { Route as AdminRouteImport } from './routes/admin'
 import { Route as AuthenticatedRouteImport } from './routes/_authenticated'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as LinksLinkIdRouteImport } from './routes/links.$linkId'
 import { Route as DemoSimpleTableRouteImport } from './routes/demo/simple-table'
 import { Route as AuthenticatedHomeRouteImport } from './routes/_authenticated.home'
 import { Route as DemoStartApiRequestRouteImport } from './routes/demo/start.api-request'
@@ -51,6 +52,11 @@ const AuthenticatedRoute = AuthenticatedRouteImport.update({
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LinksLinkIdRoute = LinksLinkIdRouteImport.update({
+  id: '/links/$linkId',
+  path: '/links/$linkId',
   getParentRoute: () => rootRouteImport,
 } as any)
 const DemoSimpleTableRoute = DemoSimpleTableRouteImport.update({
@@ -137,6 +143,7 @@ export interface FileRoutesByFullPath {
   '/posts': typeof PostsRoute
   '/home': typeof AuthenticatedHomeWithSidebarRouteWithChildren
   '/demo/simple-table': typeof DemoSimpleTableRoute
+  '/links/$linkId': typeof LinksLinkIdRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/demo/api/names': typeof DemoApiNamesRoute
   '/demo/start/api-request': typeof DemoStartApiRequestRoute
@@ -156,6 +163,7 @@ export interface FileRoutesByTo {
   '/posts': typeof PostsRoute
   '/home': typeof AuthenticatedHomeWithSidebarRouteWithChildren
   '/demo/simple-table': typeof DemoSimpleTableRoute
+  '/links/$linkId': typeof LinksLinkIdRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/demo/api/names': typeof DemoApiNamesRoute
   '/demo/start/api-request': typeof DemoStartApiRequestRoute
@@ -177,6 +185,7 @@ export interface FileRoutesById {
   '/posts': typeof PostsRoute
   '/_authenticated/home': typeof AuthenticatedHomeRouteWithChildren
   '/demo/simple-table': typeof DemoSimpleTableRoute
+  '/links/$linkId': typeof LinksLinkIdRoute
   '/_authenticated/home/_withSidebar': typeof AuthenticatedHomeWithSidebarRouteWithChildren
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/demo/api/names': typeof DemoApiNamesRoute
@@ -199,6 +208,7 @@ export interface FileRouteTypes {
     | '/posts'
     | '/home'
     | '/demo/simple-table'
+    | '/links/$linkId'
     | '/api/auth/$'
     | '/demo/api/names'
     | '/demo/start/api-request'
@@ -218,6 +228,7 @@ export interface FileRouteTypes {
     | '/posts'
     | '/home'
     | '/demo/simple-table'
+    | '/links/$linkId'
     | '/api/auth/$'
     | '/demo/api/names'
     | '/demo/start/api-request'
@@ -238,6 +249,7 @@ export interface FileRouteTypes {
     | '/posts'
     | '/_authenticated/home'
     | '/demo/simple-table'
+    | '/links/$linkId'
     | '/_authenticated/home/_withSidebar'
     | '/api/auth/$'
     | '/demo/api/names'
@@ -259,6 +271,7 @@ export interface RootRouteChildren {
   LoginRoute: typeof LoginRoute
   PostsRoute: typeof PostsRoute
   DemoSimpleTableRoute: typeof DemoSimpleTableRoute
+  LinksLinkIdRoute: typeof LinksLinkIdRoute
   ApiAuthSplatRoute: typeof ApiAuthSplatRoute
   DemoApiNamesRoute: typeof DemoApiNamesRoute
   DemoStartApiRequestRoute: typeof DemoStartApiRequestRoute
@@ -301,6 +314,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/links/$linkId': {
+      id: '/links/$linkId'
+      path: '/links/$linkId'
+      fullPath: '/links/$linkId'
+      preLoaderRoute: typeof LinksLinkIdRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/demo/simple-table': {
@@ -464,6 +484,7 @@ const rootRouteChildren: RootRouteChildren = {
   LoginRoute: LoginRoute,
   PostsRoute: PostsRoute,
   DemoSimpleTableRoute: DemoSimpleTableRoute,
+  LinksLinkIdRoute: LinksLinkIdRoute,
   ApiAuthSplatRoute: ApiAuthSplatRoute,
   DemoApiNamesRoute: DemoApiNamesRoute,
   DemoStartApiRequestRoute: DemoStartApiRequestRoute,
