@@ -23,9 +23,9 @@ import { Route as AuthenticatedHomeWithSidebarRouteImport } from './routes/_auth
 import { Route as DemoStartSsrFullSsrRouteImport } from './routes/demo/start.ssr.full-ssr'
 import { Route as DemoStartSsrDataOnlyRouteImport } from './routes/demo/start.ssr.data-only'
 import { Route as AuthenticatedHomeStudioProgramIdRouteImport } from './routes/_authenticated.home.studio.$programId'
-import { Route as AuthenticatedHomeClientsClientIdRouteImport } from './routes/_authenticated.home.clients.$clientId'
 import { Route as AuthenticatedHomeWithSidebarProgramsRouteImport } from './routes/_authenticated.home._withSidebar.programs'
 import { Route as AuthenticatedHomeWithSidebarClientsRouteImport } from './routes/_authenticated.home._withSidebar.clients'
+import { Route as AuthenticatedHomeWithSidebarClientsClientIdRouteImport } from './routes/_authenticated.home._withSidebar.clients_.$clientId'
 import { Route as AuthenticatedHomeWithSidebarSettingsExercisesLibraryRouteImport } from './routes/_authenticated.home._withSidebar.settings.exercises.library'
 import { Route as AuthenticatedHomeWithSidebarSettingsExercisesConfigurationRouteImport } from './routes/_authenticated.home._withSidebar.settings.exercises.configuration'
 
@@ -99,12 +99,6 @@ const AuthenticatedHomeStudioProgramIdRoute =
     path: '/studio/$programId',
     getParentRoute: () => AuthenticatedHomeRoute,
   } as any)
-const AuthenticatedHomeClientsClientIdRoute =
-  AuthenticatedHomeClientsClientIdRouteImport.update({
-    id: '/clients/$clientId',
-    path: '/clients/$clientId',
-    getParentRoute: () => AuthenticatedHomeRoute,
-  } as any)
 const AuthenticatedHomeWithSidebarProgramsRoute =
   AuthenticatedHomeWithSidebarProgramsRouteImport.update({
     id: '/programs',
@@ -115,6 +109,12 @@ const AuthenticatedHomeWithSidebarClientsRoute =
   AuthenticatedHomeWithSidebarClientsRouteImport.update({
     id: '/clients',
     path: '/clients',
+    getParentRoute: () => AuthenticatedHomeWithSidebarRoute,
+  } as any)
+const AuthenticatedHomeWithSidebarClientsClientIdRoute =
+  AuthenticatedHomeWithSidebarClientsClientIdRouteImport.update({
+    id: '/clients_/$clientId',
+    path: '/clients/$clientId',
     getParentRoute: () => AuthenticatedHomeWithSidebarRoute,
   } as any)
 const AuthenticatedHomeWithSidebarSettingsExercisesLibraryRoute =
@@ -142,10 +142,10 @@ export interface FileRoutesByFullPath {
   '/demo/start/api-request': typeof DemoStartApiRequestRoute
   '/home/clients': typeof AuthenticatedHomeWithSidebarClientsRoute
   '/home/programs': typeof AuthenticatedHomeWithSidebarProgramsRoute
-  '/home/clients/$clientId': typeof AuthenticatedHomeClientsClientIdRoute
   '/home/studio/$programId': typeof AuthenticatedHomeStudioProgramIdRoute
   '/demo/start/ssr/data-only': typeof DemoStartSsrDataOnlyRoute
   '/demo/start/ssr/full-ssr': typeof DemoStartSsrFullSsrRoute
+  '/home/clients/$clientId': typeof AuthenticatedHomeWithSidebarClientsClientIdRoute
   '/home/settings/exercises/configuration': typeof AuthenticatedHomeWithSidebarSettingsExercisesConfigurationRoute
   '/home/settings/exercises/library': typeof AuthenticatedHomeWithSidebarSettingsExercisesLibraryRoute
 }
@@ -161,10 +161,10 @@ export interface FileRoutesByTo {
   '/demo/start/api-request': typeof DemoStartApiRequestRoute
   '/home/clients': typeof AuthenticatedHomeWithSidebarClientsRoute
   '/home/programs': typeof AuthenticatedHomeWithSidebarProgramsRoute
-  '/home/clients/$clientId': typeof AuthenticatedHomeClientsClientIdRoute
   '/home/studio/$programId': typeof AuthenticatedHomeStudioProgramIdRoute
   '/demo/start/ssr/data-only': typeof DemoStartSsrDataOnlyRoute
   '/demo/start/ssr/full-ssr': typeof DemoStartSsrFullSsrRoute
+  '/home/clients/$clientId': typeof AuthenticatedHomeWithSidebarClientsClientIdRoute
   '/home/settings/exercises/configuration': typeof AuthenticatedHomeWithSidebarSettingsExercisesConfigurationRoute
   '/home/settings/exercises/library': typeof AuthenticatedHomeWithSidebarSettingsExercisesLibraryRoute
 }
@@ -183,10 +183,10 @@ export interface FileRoutesById {
   '/demo/start/api-request': typeof DemoStartApiRequestRoute
   '/_authenticated/home/_withSidebar/clients': typeof AuthenticatedHomeWithSidebarClientsRoute
   '/_authenticated/home/_withSidebar/programs': typeof AuthenticatedHomeWithSidebarProgramsRoute
-  '/_authenticated/home/clients/$clientId': typeof AuthenticatedHomeClientsClientIdRoute
   '/_authenticated/home/studio/$programId': typeof AuthenticatedHomeStudioProgramIdRoute
   '/demo/start/ssr/data-only': typeof DemoStartSsrDataOnlyRoute
   '/demo/start/ssr/full-ssr': typeof DemoStartSsrFullSsrRoute
+  '/_authenticated/home/_withSidebar/clients_/$clientId': typeof AuthenticatedHomeWithSidebarClientsClientIdRoute
   '/_authenticated/home/_withSidebar/settings/exercises/configuration': typeof AuthenticatedHomeWithSidebarSettingsExercisesConfigurationRoute
   '/_authenticated/home/_withSidebar/settings/exercises/library': typeof AuthenticatedHomeWithSidebarSettingsExercisesLibraryRoute
 }
@@ -204,10 +204,10 @@ export interface FileRouteTypes {
     | '/demo/start/api-request'
     | '/home/clients'
     | '/home/programs'
-    | '/home/clients/$clientId'
     | '/home/studio/$programId'
     | '/demo/start/ssr/data-only'
     | '/demo/start/ssr/full-ssr'
+    | '/home/clients/$clientId'
     | '/home/settings/exercises/configuration'
     | '/home/settings/exercises/library'
   fileRoutesByTo: FileRoutesByTo
@@ -223,10 +223,10 @@ export interface FileRouteTypes {
     | '/demo/start/api-request'
     | '/home/clients'
     | '/home/programs'
-    | '/home/clients/$clientId'
     | '/home/studio/$programId'
     | '/demo/start/ssr/data-only'
     | '/demo/start/ssr/full-ssr'
+    | '/home/clients/$clientId'
     | '/home/settings/exercises/configuration'
     | '/home/settings/exercises/library'
   id:
@@ -244,10 +244,10 @@ export interface FileRouteTypes {
     | '/demo/start/api-request'
     | '/_authenticated/home/_withSidebar/clients'
     | '/_authenticated/home/_withSidebar/programs'
-    | '/_authenticated/home/clients/$clientId'
     | '/_authenticated/home/studio/$programId'
     | '/demo/start/ssr/data-only'
     | '/demo/start/ssr/full-ssr'
+    | '/_authenticated/home/_withSidebar/clients_/$clientId'
     | '/_authenticated/home/_withSidebar/settings/exercises/configuration'
     | '/_authenticated/home/_withSidebar/settings/exercises/library'
   fileRoutesById: FileRoutesById
@@ -366,13 +366,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedHomeStudioProgramIdRouteImport
       parentRoute: typeof AuthenticatedHomeRoute
     }
-    '/_authenticated/home/clients/$clientId': {
-      id: '/_authenticated/home/clients/$clientId'
-      path: '/clients/$clientId'
-      fullPath: '/home/clients/$clientId'
-      preLoaderRoute: typeof AuthenticatedHomeClientsClientIdRouteImport
-      parentRoute: typeof AuthenticatedHomeRoute
-    }
     '/_authenticated/home/_withSidebar/programs': {
       id: '/_authenticated/home/_withSidebar/programs'
       path: '/programs'
@@ -385,6 +378,13 @@ declare module '@tanstack/react-router' {
       path: '/clients'
       fullPath: '/home/clients'
       preLoaderRoute: typeof AuthenticatedHomeWithSidebarClientsRouteImport
+      parentRoute: typeof AuthenticatedHomeWithSidebarRoute
+    }
+    '/_authenticated/home/_withSidebar/clients_/$clientId': {
+      id: '/_authenticated/home/_withSidebar/clients_/$clientId'
+      path: '/clients/$clientId'
+      fullPath: '/home/clients/$clientId'
+      preLoaderRoute: typeof AuthenticatedHomeWithSidebarClientsClientIdRouteImport
       parentRoute: typeof AuthenticatedHomeWithSidebarRoute
     }
     '/_authenticated/home/_withSidebar/settings/exercises/library': {
@@ -407,6 +407,7 @@ declare module '@tanstack/react-router' {
 interface AuthenticatedHomeWithSidebarRouteChildren {
   AuthenticatedHomeWithSidebarClientsRoute: typeof AuthenticatedHomeWithSidebarClientsRoute
   AuthenticatedHomeWithSidebarProgramsRoute: typeof AuthenticatedHomeWithSidebarProgramsRoute
+  AuthenticatedHomeWithSidebarClientsClientIdRoute: typeof AuthenticatedHomeWithSidebarClientsClientIdRoute
   AuthenticatedHomeWithSidebarSettingsExercisesConfigurationRoute: typeof AuthenticatedHomeWithSidebarSettingsExercisesConfigurationRoute
   AuthenticatedHomeWithSidebarSettingsExercisesLibraryRoute: typeof AuthenticatedHomeWithSidebarSettingsExercisesLibraryRoute
 }
@@ -417,6 +418,8 @@ const AuthenticatedHomeWithSidebarRouteChildren: AuthenticatedHomeWithSidebarRou
       AuthenticatedHomeWithSidebarClientsRoute,
     AuthenticatedHomeWithSidebarProgramsRoute:
       AuthenticatedHomeWithSidebarProgramsRoute,
+    AuthenticatedHomeWithSidebarClientsClientIdRoute:
+      AuthenticatedHomeWithSidebarClientsClientIdRoute,
     AuthenticatedHomeWithSidebarSettingsExercisesConfigurationRoute:
       AuthenticatedHomeWithSidebarSettingsExercisesConfigurationRoute,
     AuthenticatedHomeWithSidebarSettingsExercisesLibraryRoute:
@@ -430,14 +433,12 @@ const AuthenticatedHomeWithSidebarRouteWithChildren =
 
 interface AuthenticatedHomeRouteChildren {
   AuthenticatedHomeWithSidebarRoute: typeof AuthenticatedHomeWithSidebarRouteWithChildren
-  AuthenticatedHomeClientsClientIdRoute: typeof AuthenticatedHomeClientsClientIdRoute
   AuthenticatedHomeStudioProgramIdRoute: typeof AuthenticatedHomeStudioProgramIdRoute
 }
 
 const AuthenticatedHomeRouteChildren: AuthenticatedHomeRouteChildren = {
   AuthenticatedHomeWithSidebarRoute:
     AuthenticatedHomeWithSidebarRouteWithChildren,
-  AuthenticatedHomeClientsClientIdRoute: AuthenticatedHomeClientsClientIdRoute,
   AuthenticatedHomeStudioProgramIdRoute: AuthenticatedHomeStudioProgramIdRoute,
 }
 

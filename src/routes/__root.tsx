@@ -13,7 +13,7 @@ import {
 import { TanStackRouterDevtoolsPanel } from '@tanstack/react-router-devtools'
 import { createServerFn } from '@tanstack/react-start'
 import type * as React from 'react'
-import { FocusDebugger } from '@/components/debug/focus-debugger'
+import { DevToolsPanel } from '@/features/dev-tools/dev-tools-panel'
 import { Toaster } from '@/components/ui/sonner'
 import { authClient } from '@/lib/auth-client'
 import { getToken } from '@/lib/auth-server'
@@ -100,7 +100,7 @@ function RootDocument({ children }: { children: React.ReactNode }) {
         <Toaster />
         {import.meta.env.DEV && (
           <ClientOnly fallback={null}>
-            <FocusDebugger />
+            <DevToolsPanel />
           </ClientOnly>
         )}
       </body>

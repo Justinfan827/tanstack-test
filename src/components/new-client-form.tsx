@@ -15,6 +15,7 @@ import {
   FieldGroup,
 } from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
+import { useFormDebugRegistration } from '@/features/dev-tools/use-form-debug'
 
 // Form validation schema - validates string inputs
 const formValidationSchema = z
@@ -141,14 +142,21 @@ export function NewClientForm({
     },
   })
 
+  // Register form for dev tools debugging (no-op in production)
+  const { saveToHistory } = useFormDebugRegistration(formId, {
+    getValues: () => form.state.values,
+    prefill: (values) => form.reset(values as typeof form.state.values),
+    generateLabel: (v) => v.name || v.email || 'Unnamed',
+  })
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault()
+    saveToHistory()
+    form.handleSubmit()
+  }
+
   return (
-    <form
-      id={formId}
-      onSubmit={(e) => {
-        e.preventDefault()
-        form.handleSubmit()
-      }}
-    >
+    <form id={formId} onSubmit={handleSubmit}>
       <FieldGroup>
         {/* Name Field */}
         <form.Field name="name">

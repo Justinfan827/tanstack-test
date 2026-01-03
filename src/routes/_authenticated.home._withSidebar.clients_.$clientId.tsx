@@ -7,7 +7,7 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { Separator } from '@/components/ui/separator'
 import { Button } from '@/components/ui/button'
 
-export const Route = createFileRoute('/_authenticated/home/clients/$clientId')({
+export const Route = createFileRoute('/_authenticated/home/_withSidebar/clients_/$clientId')({
   component: ClientDetailPage,
 })
 
