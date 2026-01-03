@@ -1,5 +1,6 @@
 import { QueryCtx, MutationCtx } from "../_generated/server";
 import { Id } from "../_generated/dataModel";
+import { components } from "../_generated/api";
 import { authComponent, betterAuthComponent } from "../auth";
 
 /**
@@ -207,4 +208,40 @@ export function generateTemporaryPassword(): string {
   
   // Shuffle the password
   return password.split('').sort(() => Math.random() - 0.5).join('');
+}
+
+/**
+ * Verify user owns the thread. Checks both:
+ * 1. programThreads table (for program-linked threads)
+ * 2. Agent component's thread.userId (for standalone threads)
+ */
+export async function verifyThreadOwnership(
+  ctx: QueryCtx | MutationCtx,
+  threadId: string,
+  userId: Id<"users">
+): Promise<void> {
+  // Check programThreads table first (indexed lookup)
+  const programThread = await ctx.db
+    .query("programThreads")
+    .withIndex("by_thread", (q) => q.eq("threadId", threadId))
+    .first();
+
+  if (programThread) {
+    if (programThread.userId !== userId) {
+      throw new Error("Not authorized");
+    }
+    return;
+  }
+
+  // For non-program threads, check agent component
+  const thread = await ctx.runQuery(components.agent.threads.getThread, { threadId });
+
+  if (!thread) {
+    throw new Error("Thread not found");
+  }
+
+  // Agent stores userId as string, compare with our Id<"users">
+  if (thread.userId !== userId) {
+    throw new Error("Not authorized");
+  }
 }

@@ -13,7 +13,7 @@ import { v } from "convex/values";
 import { components, internal } from "./_generated/api";
 import { internalAction, mutation, query } from "./_generated/server";
 import { createProgramAgent, workoutAgent } from "./agent";
-import { getCurrentUserId } from "./helpers/auth";
+import { getCurrentUserId, verifyThreadOwnership } from "./helpers/auth";
 
 export const createNewThread = mutation({
   args: {},
@@ -44,6 +44,9 @@ export const listMessages = query({
     streamArgs: vStreamArgs,
   },
   handler: async (ctx, args) => {
+    const userId = await getCurrentUserId(ctx);
+    await verifyThreadOwnership(ctx, args.threadId, userId);
+
     const paginated = await listUIMessages(ctx, components.agent, args);
     const streams = await syncStreams(ctx, components.agent, args);
     return { ...paginated, streams };
@@ -56,6 +59,9 @@ export const sendMessage = mutation({
     prompt: v.string(),
   },
   handler: async (ctx, { threadId, prompt }) => {
+    const userId = await getCurrentUserId(ctx);
+    await verifyThreadOwnership(ctx, threadId, userId);
+
     const { messageId } = await saveMessage(ctx, components.agent, {
       threadId,
       prompt,
@@ -166,9 +172,23 @@ export const sendProgramMessage = mutation({
   },
   returns: v.string(),
   handler: async (ctx, { threadId, prompt, programId }) => {
-    // Validate program exists
+    const userId = await getCurrentUserId(ctx);
+
+    // Verify user owns the program
     const program = await ctx.db.get(programId);
-    if (!program) throw new Error("Program not found");
+    if (!program || program.userId !== userId) {
+      throw new Error("Program not found or not authorized");
+    }
+
+    // Verify thread is linked to this program and owned by user
+    const programThread = await ctx.db
+      .query("programThreads")
+      .withIndex("by_thread", (q) => q.eq("threadId", threadId))
+      .first();
+
+    if (!programThread || programThread.programId !== programId || programThread.userId !== userId) {
+      throw new Error("Thread not linked to this program or not authorized");
+    }
 
     // Check if this is the first message (thread has no title yet)
     const meta = await getThreadMetadata(ctx, components.agent, { threadId });
