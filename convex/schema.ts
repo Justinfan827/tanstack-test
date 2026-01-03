@@ -28,10 +28,47 @@ export default defineSchema({
 
   exerciseLibrary: defineTable({
     name: v.string(),
-    userId: v.optional(v.id("users")), // null = global default
+    userId: v.optional(v.id("users")), // undefined = global default
+    videoUrl: v.optional(v.string()),
+    imageUrl: v.optional(v.string()),
+    notes: v.optional(v.string()),
   })
     .index("by_user", ["userId"])
     .searchIndex("search_name", { searchField: "name" }),
+
+  // User-defined exercise categories (e.g., "Muscle Groups", "Equipment")
+  categories: defineTable({
+    name: v.string(),
+    description: v.optional(v.string()),
+    userId: v.id("users"),
+    createdAt: v.string(),
+    updatedAt: v.string(),
+    deletedAt: v.optional(v.string()), // soft delete
+  })
+    .index("by_user", ["userId"])
+    .index("by_user_and_name", ["userId", "name"]),
+
+  // Values within a category (e.g., "Chest", "Back" for "Muscle Groups")
+  categoryValues: defineTable({
+    categoryId: v.id("categories"),
+    name: v.string(),
+    description: v.optional(v.string()),
+    createdAt: v.string(),
+    updatedAt: v.string(),
+    deletedAt: v.optional(v.string()), // soft delete
+  })
+    .index("by_category", ["categoryId"])
+    .index("by_category_and_name", ["categoryId", "name"]),
+
+  // Many-to-many: exercises <-> category values
+  categoryAssignments: defineTable({
+    exerciseId: v.id("exerciseLibrary"),
+    categoryValueId: v.id("categoryValues"),
+    createdAt: v.string(),
+  })
+    .index("by_exercise", ["exerciseId"])
+    .index("by_category_value", ["categoryValueId"])
+    .index("by_exercise_and_value", ["exerciseId", "categoryValueId"]),
 
   programs: defineTable({
     name: v.string(),

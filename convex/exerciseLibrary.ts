@@ -2,19 +2,23 @@ import { internalQuery, internalMutation } from "./_generated/server";
 import { v } from "convex/values";
 import { userQuery, userMutation } from "./functions";
 
+// Shared return type for exercise queries
+const exerciseReturnType = v.object({
+  _id: v.id("exerciseLibrary"),
+  _creationTime: v.number(),
+  name: v.string(),
+  isGlobal: v.boolean(),
+  videoUrl: v.optional(v.string()),
+  imageUrl: v.optional(v.string()),
+  notes: v.optional(v.string()),
+});
+
 /**
  * List all exercises available to user (global + user's own).
  */
 export const listExercises = userQuery({
   args: {},
-  returns: v.array(
-    v.object({
-      _id: v.id("exerciseLibrary"),
-      _creationTime: v.number(),
-      name: v.string(),
-      isGlobal: v.boolean(),
-    })
-  ),
+  returns: v.array(exerciseReturnType),
   handler: async (ctx) => {
     // Get global exercises (userId = undefined)
     const globalExercises = await ctx.db
@@ -34,12 +38,18 @@ export const listExercises = userQuery({
         _creationTime: e._creationTime,
         name: e.name,
         isGlobal: true,
+        videoUrl: e.videoUrl,
+        imageUrl: e.imageUrl,
+        notes: e.notes,
       })),
       ...userExercises.map((e) => ({
         _id: e._id,
         _creationTime: e._creationTime,
         name: e.name,
         isGlobal: false,
+        videoUrl: e.videoUrl,
+        imageUrl: e.imageUrl,
+        notes: e.notes,
       })),
     ];
   },
@@ -52,14 +62,7 @@ export const searchExercises = userQuery({
   args: {
     query: v.string(),
   },
-  returns: v.array(
-    v.object({
-      _id: v.id("exerciseLibrary"),
-      _creationTime: v.number(),
-      name: v.string(),
-      isGlobal: v.boolean(),
-    })
-  ),
+  returns: v.array(exerciseReturnType),
   handler: async (ctx, args) => {
     if (!args.query.trim()) {
       // Empty query - return all exercises
@@ -79,12 +82,18 @@ export const searchExercises = userQuery({
           _creationTime: e._creationTime,
           name: e.name,
           isGlobal: true,
+          videoUrl: e.videoUrl,
+          imageUrl: e.imageUrl,
+          notes: e.notes,
         })),
         ...userExercises.map((e) => ({
           _id: e._id,
           _creationTime: e._creationTime,
           name: e.name,
           isGlobal: false,
+          videoUrl: e.videoUrl,
+          imageUrl: e.imageUrl,
+          notes: e.notes,
         })),
       ];
     }
@@ -105,6 +114,9 @@ export const searchExercises = userQuery({
       _creationTime: e._creationTime,
       name: e.name,
       isGlobal: e.userId === undefined,
+      videoUrl: e.videoUrl,
+      imageUrl: e.imageUrl,
+      notes: e.notes,
     }));
   },
 });
@@ -160,15 +172,7 @@ export const getExercise = userQuery({
   args: {
     exerciseId: v.id("exerciseLibrary"),
   },
-  returns: v.union(
-    v.null(),
-    v.object({
-      _id: v.id("exerciseLibrary"),
-      _creationTime: v.number(),
-      name: v.string(),
-      isGlobal: v.boolean(),
-    })
-  ),
+  returns: v.union(v.null(), exerciseReturnType),
   handler: async (ctx, args) => {
     const exercise = await ctx.db.get(args.exerciseId);
     if (!exercise) {
@@ -185,7 +189,47 @@ export const getExercise = userQuery({
       _creationTime: exercise._creationTime,
       name: exercise.name,
       isGlobal: exercise.userId === undefined,
+      videoUrl: exercise.videoUrl,
+      imageUrl: exercise.imageUrl,
+      notes: exercise.notes,
     };
+  },
+});
+
+/**
+ * Update a custom exercise (only if owned by user).
+ */
+export const updateExercise = userMutation({
+  args: {
+    exerciseId: v.id("exerciseLibrary"),
+    name: v.string(),
+    videoUrl: v.optional(v.string()),
+    imageUrl: v.optional(v.string()),
+    notes: v.optional(v.string()),
+  },
+  returns: v.null(),
+  handler: async (ctx, args) => {
+    const exercise = await ctx.db.get(args.exerciseId);
+    if (!exercise) {
+      throw new Error("Exercise not found");
+    }
+
+    if (exercise.userId === undefined) {
+      throw new Error("Cannot edit global exercises");
+    }
+
+    if (exercise.userId !== ctx.userId) {
+      throw new Error("Not authorized");
+    }
+
+    await ctx.db.patch(args.exerciseId, {
+      name: args.name,
+      videoUrl: args.videoUrl,
+      imageUrl: args.imageUrl,
+      notes: args.notes,
+    });
+
+    return null;
   },
 });
 
@@ -200,14 +244,7 @@ export const internalListExercises = internalQuery({
   args: {
     userId: v.id("users"),
   },
-  returns: v.array(
-    v.object({
-      _id: v.id("exerciseLibrary"),
-      _creationTime: v.number(),
-      name: v.string(),
-      isGlobal: v.boolean(),
-    })
-  ),
+  returns: v.array(exerciseReturnType),
   handler: async (ctx, args) => {
     const globalExercises = await ctx.db
       .query("exerciseLibrary")
@@ -225,12 +262,18 @@ export const internalListExercises = internalQuery({
         _creationTime: e._creationTime,
         name: e.name,
         isGlobal: true,
+        videoUrl: e.videoUrl,
+        imageUrl: e.imageUrl,
+        notes: e.notes,
       })),
       ...userExercises.map((e) => ({
         _id: e._id,
         _creationTime: e._creationTime,
         name: e.name,
         isGlobal: false,
+        videoUrl: e.videoUrl,
+        imageUrl: e.imageUrl,
+        notes: e.notes,
       })),
     ];
   },
@@ -244,14 +287,7 @@ export const internalSearchExercises = internalQuery({
     userId: v.id("users"),
     query: v.string(),
   },
-  returns: v.array(
-    v.object({
-      _id: v.id("exerciseLibrary"),
-      _creationTime: v.number(),
-      name: v.string(),
-      isGlobal: v.boolean(),
-    })
-  ),
+  returns: v.array(exerciseReturnType),
   handler: async (ctx, args) => {
     if (!args.query.trim()) {
       const globalExercises = await ctx.db
@@ -270,12 +306,18 @@ export const internalSearchExercises = internalQuery({
           _creationTime: e._creationTime,
           name: e.name,
           isGlobal: true,
+          videoUrl: e.videoUrl,
+          imageUrl: e.imageUrl,
+          notes: e.notes,
         })),
         ...userExercises.map((e) => ({
           _id: e._id,
           _creationTime: e._creationTime,
           name: e.name,
           isGlobal: false,
+          videoUrl: e.videoUrl,
+          imageUrl: e.imageUrl,
+          notes: e.notes,
         })),
       ];
     }
@@ -294,6 +336,9 @@ export const internalSearchExercises = internalQuery({
       _creationTime: e._creationTime,
       name: e.name,
       isGlobal: e.userId === undefined,
+      videoUrl: e.videoUrl,
+      imageUrl: e.imageUrl,
+      notes: e.notes,
     }));
   },
 });
@@ -344,13 +389,16 @@ export const internalDeleteExercise = internalMutation({
 });
 
 /**
- * Internal: Update a custom exercise name (for agent tools).
+ * Internal: Update a custom exercise (for agent tools).
  */
 export const internalUpdateExercise = internalMutation({
   args: {
     userId: v.id("users"),
     exerciseId: v.id("exerciseLibrary"),
     name: v.string(),
+    videoUrl: v.optional(v.string()),
+    imageUrl: v.optional(v.string()),
+    notes: v.optional(v.string()),
   },
   returns: v.null(),
   handler: async (ctx, args) => {
@@ -367,7 +415,12 @@ export const internalUpdateExercise = internalMutation({
       throw new Error("Not authorized");
     }
 
-    await ctx.db.patch(args.exerciseId, { name: args.name });
+    await ctx.db.patch(args.exerciseId, {
+      name: args.name,
+      videoUrl: args.videoUrl,
+      imageUrl: args.imageUrl,
+      notes: args.notes,
+    });
     return null;
   },
 });
@@ -380,15 +433,7 @@ export const internalGetExercise = internalQuery({
     userId: v.id("users"),
     exerciseId: v.id("exerciseLibrary"),
   },
-  returns: v.union(
-    v.null(),
-    v.object({
-      _id: v.id("exerciseLibrary"),
-      _creationTime: v.number(),
-      name: v.string(),
-      isGlobal: v.boolean(),
-    })
-  ),
+  returns: v.union(v.null(), exerciseReturnType),
   handler: async (ctx, args) => {
     const exercise = await ctx.db.get(args.exerciseId);
     if (!exercise) {
@@ -405,6 +450,9 @@ export const internalGetExercise = internalQuery({
       _creationTime: exercise._creationTime,
       name: exercise.name,
       isGlobal: exercise.userId === undefined,
+      videoUrl: exercise.videoUrl,
+      imageUrl: exercise.imageUrl,
+      notes: exercise.notes,
     };
   },
 });
