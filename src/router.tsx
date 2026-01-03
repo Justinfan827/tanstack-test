@@ -13,9 +13,17 @@ export function getRouter() {
   if (!convexUrl) {
     throw new Error('VITE_CONVEX_URL is not set')
   }
+
+  // Auth client: waits for auth before connecting (for authenticated routes)
   const convexQueryClient = new ConvexQueryClient(convexUrl, {
     verbose: true,
     expectAuth: true,
+  })
+
+  // Public client: connects immediately without auth (for public routes like /links)
+  const publicConvexQueryClient = new ConvexQueryClient(convexUrl, {
+    verbose: true,
+    expectAuth: false,
   })
 
   const queryClient: QueryClient = new QueryClient({
@@ -27,10 +35,12 @@ export function getRouter() {
     },
   })
   convexQueryClient.connect(queryClient)
+  publicConvexQueryClient.connect(queryClient)
+
   const router = createRouter({
     routeTree,
     defaultPreload: 'intent',
-    context: { queryClient, convexQueryClient },
+    context: { queryClient, convexQueryClient, publicConvexQueryClient },
     scrollRestoration: true,
     defaultErrorComponent: (err) => <p>{err.error.stack}</p>,
     defaultNotFoundComponent: () => <p>not found</p>,

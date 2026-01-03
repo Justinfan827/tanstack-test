@@ -12,12 +12,16 @@ import {
 } from '@tanstack/react-router'
 import { TanStackRouterDevtoolsPanel } from '@tanstack/react-router-devtools'
 import { createServerFn } from '@tanstack/react-start'
+import { ConvexProvider } from 'convex/react'
 import type * as React from 'react'
 import { DevToolsPanel } from '@/features/dev-tools/dev-tools-panel'
 import { Toaster } from '@/components/ui/sonner'
 import { authClient } from '@/lib/auth-client'
 import { getToken } from '@/lib/auth-server'
 import appCss from '../styles.css?url'
+
+/** Routes matching these patterns use public (unauthenticated) Convex client */
+const PUBLIC_ROUTE_PATTERNS = ['/links/']
 
 // Get auth information for SSR using available cookies
 const getAuth = createServerFn({ method: 'GET' }).handler(async () => {
@@ -27,6 +31,7 @@ const getAuth = createServerFn({ method: 'GET' }).handler(async () => {
 export const Route = createRootRouteWithContext<{
   queryClient: QueryClient
   convexQueryClient: ConvexQueryClient
+  publicConvexQueryClient: ConvexQueryClient
 }>()({
   head: () => ({
     meta: [
@@ -44,6 +49,19 @@ export const Route = createRootRouteWithContext<{
     ],
   }),
   beforeLoad: async (ctx) => {
+    // Check if this is a public route (no auth required)
+    const isPublicRoute = PUBLIC_ROUTE_PATTERNS.some((pattern) =>
+      ctx.location.pathname.startsWith(pattern),
+    )
+
+    if (isPublicRoute) {
+      return {
+        isAuthenticated: false,
+        isPublicRoute: true,
+        token: null,
+      }
+    }
+
     const token = await getAuth()
 
     // all queries, mutations and actions through TanStack Query will be
@@ -56,6 +74,7 @@ export const Route = createRootRouteWithContext<{
 
     return {
       isAuthenticated: !!token,
+      isPublicRoute: false,
       token,
     }
   },
@@ -64,6 +83,19 @@ export const Route = createRootRouteWithContext<{
 
 function RootComponent() {
   const context = useRouteContext({ from: Route.id })
+
+  // Public routes use plain ConvexProvider with public client (no auth waiting)
+  if (context.isPublicRoute) {
+    return (
+      <ConvexProvider client={context.publicConvexQueryClient.convexClient}>
+        <RootDocument>
+          <Outlet />
+        </RootDocument>
+      </ConvexProvider>
+    )
+  }
+
+  // Authenticated routes use ConvexBetterAuthProvider
   return (
     <ConvexBetterAuthProvider
       client={context.convexQueryClient.convexClient}
