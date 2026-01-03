@@ -1,5 +1,8 @@
 import { createFileRoute } from '@tanstack/react-router'
+import { useQuery } from 'convex/react'
 import { toast } from 'sonner'
+import { api } from '../../convex/_generated/api'
+import type { Id } from '../../convex/_generated/dataModel'
 import { Button } from '@/components/ui/button'
 import {
   Sidebar,
@@ -7,6 +10,7 @@ import {
   SidebarInset,
   SidebarProvider,
 } from '@/components/ui/sidebar'
+import { ProgramGrid } from '@/features/programstudio/program-grid'
 
 export const Route = createFileRoute('/_authenticated/home/studio/$programId')({
   component: StudioPage,
@@ -14,6 +18,9 @@ export const Route = createFileRoute('/_authenticated/home/studio/$programId')({
 
 function StudioPage() {
   const { programId } = Route.useParams()
+  const program = useQuery(api.programs.getProgram, {
+    programId: programId as Id<'programs'>,
+  })
 
   return (
     <SidebarProvider
@@ -25,7 +32,7 @@ function StudioPage() {
         } as React.CSSProperties
       }
     >
-      <StudioHeader programId={programId} />
+      <StudioHeader programName={program?.name} />
       <div className="@container/main flex flex-1 flex-row-reverse">
         {/* Right sidebar for chat */}
         <Sidebar
@@ -41,14 +48,16 @@ function StudioPage() {
 
         {/* Main content area for grid */}
         <SidebarInset className="overflow-auto transition-all duration-300 ease-in-out peer-data-[variant=inset]:peer-data-[state=collapsed]:m-0! peer-data-[variant=inset]:peer-data-[state=expanded]:ml-2! peer-data-[variant=inset]:peer-data-[state=collapsed]:rounded-none!">
-          <PlaceholderGrid programId={programId} />
+          <div className="p-4">
+            <ProgramGrid programId={programId as Id<'programs'>} />
+          </div>
         </SidebarInset>
       </div>
     </SidebarProvider>
   )
 }
 
-function StudioHeader({ programId }: { programId: string }) {
+function StudioHeader({ programName }: { programName?: string }) {
   return (
     <header className="flex h-(--header-height) w-full flex-shrink-0 items-center border-b bg-background px-4">
       <div className="flex w-full items-center gap-2">
@@ -75,7 +84,7 @@ function StudioHeader({ programId }: { programId: string }) {
               strokeLinejoin="round"
             />
           </svg>
-          <span>Program {programId}</span>
+          <span>{programName ?? 'Loading...'}</span>
         </div>
 
         {/* Actions */}
@@ -90,26 +99,6 @@ function StudioHeader({ programId }: { programId: string }) {
         </div>
       </div>
     </header>
-  )
-}
-
-function PlaceholderGrid({ programId }: { programId: string }) {
-  return (
-    <div className="flex h-full items-center justify-center p-8">
-      <div className="space-y-4 text-center">
-        <div>
-          <h2 className="font-semibold text-lg">Program Grid</h2>
-          <p className="text-muted-foreground text-sm">
-            Program ID: {programId}
-          </p>
-        </div>
-        <div className="rounded-lg border border-dashed border-muted-foreground/25 bg-muted/10 p-12">
-          <p className="text-muted-foreground text-sm">
-            Grid component will go here
-          </p>
-        </div>
-      </div>
-    </div>
   )
 }
 

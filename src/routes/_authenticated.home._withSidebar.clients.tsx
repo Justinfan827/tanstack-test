@@ -6,7 +6,12 @@ import { api } from '../../convex/_generated/api'
 import { Card, CardHeader, CardTitle } from '@/components/ui/card'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Skeleton } from '@/components/ui/skeleton'
-import { EmptyState } from '@/components/empty-state'
+import {
+  Empty,
+  EmptyHeader,
+  EmptyTitle,
+  EmptyDescription,
+} from '@/components/ui/empty'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -55,12 +60,16 @@ function ClientsPage() {
         </div>
 
         {clients.length === 0 ? (
-          <EmptyState
-            title="No clients yet"
-            description="Create your first client to start tracking their fitness journey."
-          >
-            <NewClientButton />
-          </EmptyState>
+          <Empty>
+            <EmptyHeader>
+              <EmptyTitle>No clients yet</EmptyTitle>
+              <EmptyDescription>
+                Create your first client to start tracking their fitness
+                journey.
+              </EmptyDescription>
+            </EmptyHeader>
+            <NewClientButton variant="outline" />
+          </Empty>
         ) : (
           <div className="space-y-3">
             {clients.map((client) => {

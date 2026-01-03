@@ -19,7 +19,17 @@ import {
 import { api } from '../../convex/_generated/api'
 import { Card, CardContent } from '@/components/ui/card'
 
-export function NewClientButton() {
+export function NewClientButton({
+  variant = 'default',
+}: {
+  variant?:
+    | 'default'
+    | 'outline'
+    | 'ghost'
+    | 'secondary'
+    | 'destructive'
+    | 'link'
+}) {
   const [open, setOpen] = useState(false)
   const [isCreating, setIsCreating] = useState(false)
   const [tempPassword, setTempPassword] = useState<string | null>(null)
@@ -79,7 +89,7 @@ export function NewClientButton() {
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger render={<Button />}>
+      <DialogTrigger render={<Button variant={variant} />}>
         <Plus className="h-4 w-4" />
         New Client
       </DialogTrigger>

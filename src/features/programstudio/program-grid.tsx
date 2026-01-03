@@ -1,9 +1,16 @@
 import type { ColumnDef } from '@tanstack/react-table'
 import { useMutation, useQuery } from 'convex/react'
-import { Loader2 } from 'lucide-react'
+import { Loader2, Plus } from 'lucide-react'
 import { useCallback, useEffect, useMemo, useRef } from 'react'
 import { DataGrid } from '@/components/data-grid/components/data-grid'
 import { useDataGrid } from '@/components/data-grid/hooks/use-data-grid'
+import { Button } from '@/components/ui/button'
+import {
+  Empty,
+  EmptyHeader,
+  EmptyTitle,
+  EmptyDescription,
+} from '@/components/ui/empty'
 import { api } from '../../../convex/_generated/api'
 import type { Id } from '../../../convex/_generated/dataModel'
 
@@ -22,6 +29,12 @@ export type ExerciseRow = {
 export function ProgramGrid({ programId }: { programId: Id<'programs'> }) {
   const program = useQuery(api.programs.getProgram, { programId })
   const exercises = useQuery(api.exerciseLibrary.listExercises)
+  const addDay = useMutation(api.days.addDay)
+
+  const handleAddDay = useCallback(() => {
+    const dayNumber = (program?.days.length ?? 0) + 1
+    addDay({ programId, dayLabel: `Day ${dayNumber}` })
+  }, [addDay, programId, program?.days.length])
 
   // Transform program data into grid rows for each day
   const daysWithGridData = useMemo(() => {
@@ -179,9 +192,18 @@ export function ProgramGrid({ programId }: { programId: Id<'programs'> }) {
         />
       ))}
       {daysWithGridData.length === 0 && (
-        <div className="text-center text-muted-foreground mt-8">
-          No days in this program yet
-        </div>
+        <Empty>
+          <EmptyHeader>
+            <EmptyTitle>No days yet</EmptyTitle>
+            <EmptyDescription>
+              Add your first training day to start building this program.
+            </EmptyDescription>
+          </EmptyHeader>
+          <Button variant="outline" onClick={handleAddDay}>
+            <Plus className="mr-2 h-4 w-4" />
+            Add Day
+          </Button>
+        </Empty>
       )}
     </div>
   )
