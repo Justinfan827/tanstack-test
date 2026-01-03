@@ -16,44 +16,64 @@ import {
 } from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
 
-// Zod schema for validation
-const clientFormSchema = z
+// Form validation schema - validates string inputs
+const formValidationSchema = z
   .object({
     name: z.string().min(2, { message: 'Name must be at least 2 characters' }),
     email: z.string().email({ message: 'Please enter a valid email' }),
-    age: z
-      .number()
-      .min(1, { message: 'Age must be at least 1' })
-      .max(120, { message: 'Age must be at most 120' }),
-    gender: z.enum(['male', 'female']),
+    age: z.string().min(1, { message: 'Age is required' }),
+    gender: z.enum(['male', 'female'], {
+      message: 'Please select a gender',
+    }),
     heightUnit: z.enum(['cm', 'in']),
-    heightValue: z.number().optional(), // for cm
-    heightFeet: z.number().optional(), // for in
-    heightInches: z.number().optional(), // for in
-    weightValue: z
-      .number()
-      .min(1, { message: 'Weight must be at least 1' })
-      .max(1000, { message: 'Weight must be at most 1000' }),
+    heightValue: z.string(),
+    heightFeet: z.string(),
+    heightInches: z.string(),
+    weightValue: z.string().min(1, { message: 'Weight is required' }),
     weightUnit: z.enum(['kg', 'lbs']),
   })
   .refine(
     (data) => {
-      // Validate height based on unit
+      const age = Number(data.age)
+      return !Number.isNaN(age) && age >= 1 && age <= 120
+    },
+    {
+      message: 'Age must be between 1 and 120',
+      path: ['age'],
+    },
+  )
+  .refine(
+    (data) => {
+      const weight = Number(data.weightValue)
+      return !Number.isNaN(weight) && weight >= 1 && weight <= 1000
+    },
+    {
+      message: 'Weight must be between 1 and 1000',
+      path: ['weightValue'],
+    },
+  )
+  .refine(
+    (data) => {
       if (data.heightUnit === 'cm') {
+        const height = Number(data.heightValue)
         return (
-          data.heightValue !== undefined &&
-          data.heightValue > 0 &&
-          data.heightValue <= 300
+          data.heightValue !== '' &&
+          !Number.isNaN(height) &&
+          height > 0 &&
+          height <= 300
         )
       }
-      // For inches, validate feet and inches
+      const feet = Number(data.heightFeet)
+      const inches = Number(data.heightInches)
       return (
-        data.heightFeet !== undefined &&
-        data.heightFeet >= 0 &&
-        data.heightFeet <= 8 &&
-        data.heightInches !== undefined &&
-        data.heightInches >= 0 &&
-        data.heightInches < 12
+        data.heightFeet !== '' &&
+        data.heightInches !== '' &&
+        !Number.isNaN(feet) &&
+        !Number.isNaN(inches) &&
+        feet >= 0 &&
+        feet <= 8 &&
+        inches >= 0 &&
+        inches < 12
       )
     },
     {
@@ -62,7 +82,19 @@ const clientFormSchema = z
     },
   )
 
-export type ClientFormData = z.infer<typeof clientFormSchema>
+// Output type for the parent component
+export interface ClientFormData {
+  name: string
+  email: string
+  age: number
+  gender: 'male' | 'female'
+  heightUnit: 'cm' | 'in'
+  heightValue?: number
+  heightFeet?: number
+  heightInches?: number
+  weightValue: number
+  weightUnit: 'kg' | 'lbs'
+}
 
 interface NewClientFormProps {
   onSubmit: (data: ClientFormData) => void | Promise<void>
@@ -77,23 +109,35 @@ export function NewClientForm({
     defaultValues: {
       name: '',
       email: '',
-      age: 25,
-      gender: 'male',
+      age: '',
+      gender: '',
       heightUnit: 'cm',
-      heightValue: 170,
-      heightFeet: 5,
-      heightInches: 8,
-      weightValue: 70,
+      heightValue: '',
+      heightFeet: '',
+      heightInches: '',
+      weightValue: '',
       weightUnit: 'kg',
     },
+    validators: {
+      onSubmit: formValidationSchema,
+    },
     onSubmit: async ({ value }) => {
-      // Manual validation with zod
-      const result = clientFormSchema.safeParse(value)
-      if (!result.success) {
-        console.error('Form validation failed:', result.error)
-        return
+      // Transform strings to proper types
+      const data: ClientFormData = {
+        name: value.name,
+        email: value.email,
+        age: Number(value.age),
+        gender: value.gender as 'male' | 'female',
+        heightUnit: value.heightUnit as 'cm' | 'in',
+        heightValue: value.heightValue ? Number(value.heightValue) : undefined,
+        heightFeet: value.heightFeet ? Number(value.heightFeet) : undefined,
+        heightInches: value.heightInches
+          ? Number(value.heightInches)
+          : undefined,
+        weightValue: Number(value.weightValue),
+        weightUnit: value.weightUnit as 'kg' | 'lbs',
       }
-      await onSubmit(result.data)
+      await onSubmit(data)
     },
   })
 
@@ -120,9 +164,9 @@ export function NewClientForm({
                   value={field.state.value}
                   onBlur={field.handleBlur}
                   onChange={(e) => field.handleChange(e.target.value)}
-                  placeholder="John Doe"
+                  aria-invalid={isInvalid}
                 />
-                <FieldDescription>
+                <FieldDescription className="sr-only">
                   Client's first and last name
                 </FieldDescription>
                 {isInvalid && <FieldError errors={field.state.meta.errors} />}
@@ -146,9 +190,11 @@ export function NewClientForm({
                   value={field.state.value}
                   onBlur={field.handleBlur}
                   onChange={(e) => field.handleChange(e.target.value)}
-                  placeholder="john@example.com"
+                  aria-invalid={isInvalid}
                 />
-                <FieldDescription>Client's email address</FieldDescription>
+                <FieldDescription className="sr-only">
+                  Client's email address
+                </FieldDescription>
                 {isInvalid && <FieldError errors={field.state.meta.errors} />}
               </Field>
             )
@@ -171,9 +217,12 @@ export function NewClientForm({
                   max="120"
                   value={field.state.value}
                   onBlur={field.handleBlur}
-                  onChange={(e) => field.handleChange(Number(e.target.value))}
+                  onChange={(e) => field.handleChange(e.target.value)}
+                  aria-invalid={isInvalid}
                 />
-                <FieldDescription>Client's age in years</FieldDescription>
+                <FieldDescription className="sr-only">
+                  Client's age in years
+                </FieldDescription>
                 {isInvalid && <FieldError errors={field.state.meta.errors} />}
               </Field>
             )
@@ -189,10 +238,10 @@ export function NewClientForm({
               <Field data-invalid={isInvalid}>
                 <FieldLabel>Gender</FieldLabel>
                 <Select
-                  value={field.state.value}
-                  onValueChange={(value) => field.handleChange(value || 'male')}
+                  value={field.state.value || null}
+                  onValueChange={(value) => field.handleChange(value ?? '')}
                 >
-                  <SelectTrigger>
+                  <SelectTrigger aria-invalid={isInvalid}>
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -200,7 +249,9 @@ export function NewClientForm({
                     <SelectItem value="female">Female</SelectItem>
                   </SelectContent>
                 </Select>
-                <FieldDescription>Client's gender</FieldDescription>
+                <FieldDescription className="sr-only">
+                  Client's gender
+                </FieldDescription>
                 {isInvalid && <FieldError errors={field.state.meta.errors} />}
               </Field>
             )
@@ -209,26 +260,6 @@ export function NewClientForm({
 
         {/* Height Fields - Conditional based on unit */}
         <div className="flex gap-4">
-          <form.Field name="heightUnit">
-            {(field) => (
-              <Field className="w-32">
-                <FieldLabel>Height Unit</FieldLabel>
-                <Select
-                  value={field.state.value}
-                  onValueChange={(value) => field.handleChange(value || 'cm')}
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="cm">cm</SelectItem>
-                    <SelectItem value="in">ft/in</SelectItem>
-                  </SelectContent>
-                </Select>
-              </Field>
-            )}
-          </form.Field>
-
           {form.state.values.heightUnit === 'cm' ? (
             <form.Field name="heightValue">
               {(field) => {
@@ -236,7 +267,7 @@ export function NewClientForm({
                   field.state.meta.isTouched && !field.state.meta.isValid
                 return (
                   <Field data-invalid={isInvalid} className="flex-1">
-                    <FieldLabel htmlFor={field.name}>Height (cm)</FieldLabel>
+                    <FieldLabel htmlFor={field.name}>Height</FieldLabel>
                     <Input
                       id={field.name}
                       name={field.name}
@@ -244,12 +275,10 @@ export function NewClientForm({
                       min="1"
                       max="300"
                       step="0.1"
-                      value={field.state.value ?? ''}
+                      value={field.state.value}
                       onBlur={field.handleBlur}
-                      onChange={(e) =>
-                        field.handleChange(Number(e.target.value))
-                      }
-                      placeholder="170"
+                      onChange={(e) => field.handleChange(e.target.value)}
+                      aria-invalid={isInvalid}
                     />
                     {isInvalid && (
                       <FieldError errors={field.state.meta.errors} />
@@ -273,12 +302,10 @@ export function NewClientForm({
                         type="number"
                         min="0"
                         max="8"
-                        value={field.state.value ?? ''}
+                        value={field.state.value}
                         onBlur={field.handleBlur}
-                        onChange={(e) =>
-                          field.handleChange(Number(e.target.value))
-                        }
-                        placeholder="5"
+                        onChange={(e) => field.handleChange(e.target.value)}
+                        aria-invalid={isInvalid}
                       />
                       {isInvalid && (
                         <FieldError errors={field.state.meta.errors} />
@@ -302,12 +329,10 @@ export function NewClientForm({
                         min="0"
                         max="11"
                         step="0.1"
-                        value={field.state.value ?? ''}
+                        value={field.state.value}
                         onBlur={field.handleBlur}
-                        onChange={(e) =>
-                          field.handleChange(Number(e.target.value))
-                        }
-                        placeholder="8"
+                        onChange={(e) => field.handleChange(e.target.value)}
+                        aria-invalid={isInvalid}
                       />
                       {isInvalid && (
                         <FieldError errors={field.state.meta.errors} />
@@ -318,6 +343,26 @@ export function NewClientForm({
               </form.Field>
             </>
           )}
+
+          <form.Field name="heightUnit">
+            {(field) => (
+              <Field className="w-24">
+                <FieldLabel>Unit</FieldLabel>
+                <Select
+                  value={field.state.value}
+                  onValueChange={(value) => field.handleChange(value || 'cm')}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="cm">cm</SelectItem>
+                    <SelectItem value="in">ft/in</SelectItem>
+                  </SelectContent>
+                </Select>
+              </Field>
+            )}
+          </form.Field>
         </div>
 
         {/* Weight Fields */}
@@ -338,8 +383,8 @@ export function NewClientForm({
                     step="0.1"
                     value={field.state.value}
                     onBlur={field.handleBlur}
-                    onChange={(e) => field.handleChange(Number(e.target.value))}
-                    placeholder="70"
+                    onChange={(e) => field.handleChange(e.target.value)}
+                    aria-invalid={isInvalid}
                   />
                   {isInvalid && <FieldError errors={field.state.meta.errors} />}
                 </Field>
@@ -349,8 +394,8 @@ export function NewClientForm({
 
           <form.Field name="weightUnit">
             {(field) => (
-              <Field className="w-32">
-                <FieldLabel>Weight Unit</FieldLabel>
+              <Field className="w-24">
+                <FieldLabel>Unit</FieldLabel>
                 <Select
                   value={field.state.value}
                   onValueChange={(value) => field.handleChange(value || 'kg')}

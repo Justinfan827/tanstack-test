@@ -106,12 +106,8 @@ export function NewClientButton() {
               >
                 Cancel
               </Button>
-              <Button
-                type="submit"
-                form="new-client-form"
-                disabled={isCreating}
-              >
-                {isCreating ? 'Creating...' : 'Create Client'}
+              <Button type="submit" form="new-client-form" loading={isCreating}>
+                Create Client
               </Button>
             </DialogFooter>
           </>
