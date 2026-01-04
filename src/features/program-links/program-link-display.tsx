@@ -91,7 +91,7 @@ export function ProgramLinkDisplay({ link }: { link: ProgramLinkData }) {
 
   return (
     <div className="flex items-start justify-center leading-none">
-      <div className="max-w-4xl w-full sm:m-16 p-8 sm:py-24 px-10 sm:px-24 sm:border sm:rounded-md space-y-12">
+      <div className="max-w-4xl w-full sm:m-16 p-4 sm:py-24 sm:px-24 sm:border sm:rounded-md space-y-12">
         {/* <div className="mb-12 flex flex-col items-center gap-6"> */}
         {/* <div> */}
         {/*   {clientProfile.image ? ( */}
@@ -201,7 +201,7 @@ function ReadOnlyDayGrid({
             variant: 'short-text',
           },
         },
-        minSize: 150,
+        size: 100,
         enableResizing: false,
       },
       // {
@@ -226,6 +226,7 @@ function ReadOnlyDayGrid({
             variant: 'short-text',
           },
         },
+        size: 20,
         enableResizing: false,
       },
       {
@@ -238,6 +239,7 @@ function ReadOnlyDayGrid({
             variant: 'short-text',
           },
         },
+        size: 20,
         enableResizing: false,
       },
       // {
@@ -292,7 +294,7 @@ function ReadOnlyDayGrid({
   return (
     <div className="flex flex-col gap-2 space-y-3">
       <Highlight className="">{dayLabel}</Highlight>
-      <DataGrid {...dataGrid} height={400} stretchColumns />
+      <DataGrid {...dataGrid} stretchColumns />
     </div>
   )
 }
