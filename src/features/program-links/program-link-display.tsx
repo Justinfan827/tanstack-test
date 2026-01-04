@@ -91,7 +91,7 @@ export function ProgramLinkDisplay({ link }: { link: ProgramLinkData }) {
 
   return (
     <div className="flex items-start justify-center leading-none">
-      <div className="max-w-4xl w-full sm:m-16 p-4 sm:py-24 sm:px-24 sm:border sm:rounded-md space-y-12">
+      <div className="max-w-4xl w-full sm:m-16 px-4 pt-4 pb-12 sm:py-24 sm:px-24 sm:border sm:rounded-md space-y-12">
         {/* <div className="mb-12 flex flex-col items-center gap-6"> */}
         {/* <div> */}
         {/*   {clientProfile.image ? ( */}
