@@ -7,7 +7,9 @@ import type { Id } from '@/../convex/_generated/dataModel'
 
 export const Route = createFileRoute('/links/$linkId')({
   component: ProgramLinkPage,
-  errorComponent: () => <div className="p-8">Link not found or has expired.</div>,
+  errorComponent: () => (
+    <div className="p-8">Link not found or has expired.</div>
+  ),
 })
 
 function ProgramLinkPage() {

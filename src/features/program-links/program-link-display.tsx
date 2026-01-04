@@ -126,12 +126,12 @@ export function ProgramLinkDisplay({ link }: { link: ProgramLinkData }) {
           <Separator className="my-4" />
           <div className="flex items-center text-muted-foreground">
             <span className="inline-flex items-center gap-1">
-              <AnimatedHandFistIcon size={14} />
+              <AnimatedHandFistIcon size={14} animateOnMount />
               {numDays} day split
             </span>
             <Separator orientation="vertical" className="mx-4" />
             <span className="inline-flex items-center gap-1 italic">
-              <AnimClockIcon size={14} />
+              <AnimClockIcon size={14} animateOnMount />
               Created {format(link._creationTime, 'MMMM d, yyyy')}
             </span>
           </div>

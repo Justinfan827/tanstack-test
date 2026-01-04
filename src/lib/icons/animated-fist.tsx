@@ -1,52 +1,75 @@
-import { motion, useAnimation } from "motion/react";
-import type { HTMLAttributes } from "react";
-import { forwardRef, useCallback, useImperativeHandle, useRef } from "react";
+import { motion, useAnimation } from 'motion/react'
+import type { HTMLAttributes } from 'react'
+import {
+  forwardRef,
+  useCallback,
+  useEffect,
+  useImperativeHandle,
+  useRef,
+} from 'react'
 
-import { cn } from "@/lib/utils";
+import { cn } from '@/lib/utils'
 
 export interface HandFistIconHandle {
-  startAnimation: () => void;
-  stopAnimation: () => void;
+  startAnimation: () => void
+  stopAnimation: () => void
 }
 
 interface HandFistIconProps extends HTMLAttributes<HTMLDivElement> {
-  size?: number;
+  size?: number
+  animateOnMount?: boolean
 }
 
 const AnimatedHandFistIcon = forwardRef<HandFistIconHandle, HandFistIconProps>(
-  ({ onMouseEnter, onMouseLeave, className, size = 28, ...props }, ref) => {
-    const controls = useAnimation();
-    const isControlledRef = useRef(false);
+  (
+    {
+      onMouseEnter,
+      onMouseLeave,
+      className,
+      size = 28,
+      animateOnMount = false,
+      ...props
+    },
+    ref,
+  ) => {
+    const controls = useAnimation()
+    const isControlledRef = useRef(false)
+
+    useEffect(() => {
+      if (animateOnMount) {
+        controls.start('animate')
+      }
+    }, [animateOnMount, controls])
 
     useImperativeHandle(ref, () => {
-      isControlledRef.current = true;
+      isControlledRef.current = true
       return {
-        startAnimation: () => controls.start("animate"),
-        stopAnimation: () => controls.start("normal"),
-      };
-    });
+        startAnimation: () => controls.start('animate'),
+        stopAnimation: () => controls.start('normal'),
+      }
+    })
 
     const handleMouseEnter = useCallback(
       (e: React.MouseEvent<HTMLDivElement>) => {
         if (isControlledRef.current) {
-          onMouseEnter?.(e);
+          onMouseEnter?.(e)
         } else {
-          controls.start("animate");
+          controls.start('animate')
         }
       },
-      [controls, onMouseEnter]
-    );
+      [controls, onMouseEnter],
+    )
 
     const handleMouseLeave = useCallback(
       (e: React.MouseEvent<HTMLDivElement>) => {
         if (isControlledRef.current) {
-          onMouseLeave?.(e);
+          onMouseLeave?.(e)
         } else {
-          controls.start("normal");
+          controls.start('normal')
         }
       },
-      [controls, onMouseLeave]
-    );
+      [controls, onMouseLeave],
+    )
 
     return (
       <div
@@ -71,9 +94,9 @@ const AnimatedHandFistIcon = forwardRef<HandFistIconHandle, HandFistIconProps>(
               scale: [1, 1.1, 1],
               transition: {
                 duration: 0.4,
-                ease: "easeInOut",
+                ease: 'easeInOut',
                 repeat: 1,
-                repeatType: "reverse",
+                repeatType: 'reverse',
               },
             },
           }}
@@ -87,10 +110,10 @@ const AnimatedHandFistIcon = forwardRef<HandFistIconHandle, HandFistIconProps>(
           <path d="M9 7V4A2 2 0 1 1 13 4V7.268" />
         </motion.svg>
       </div>
-    );
-  }
-);
+    )
+  },
+)
 
-AnimatedHandFistIcon.displayName = "AnimatedHandFistIcon";
+AnimatedHandFistIcon.displayName = 'AnimatedHandFistIcon'
 
-export { AnimatedHandFistIcon };
+export { AnimatedHandFistIcon }
