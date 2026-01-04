@@ -2,10 +2,32 @@
 
 Guidelines for AI agents working in this codebase.
 
+## Unix Philosophy
+
+These are the rules I follow in this repo:
+
+1. **Modularity**: Simple parts, clean interfaces
+2. **Clarity**: Clarity > cleverness
+3. **Composition**: Design for connection
+4. **Separation**: Policy from mechanism; interfaces from engines
+5. **Simplicity**: Add complexity only when necessary
+6. **Parsimony**: Big programs only when nothing else works
+7. **Transparency**: Design for visibility and debugging
+8. **Robustness**: Child of transparency and simplicity
+9. **Representation**: Fold knowledge into data
+10. **Least Surprise**: Do the expected thing
+11. **Silence**: Say nothing when nothing to say
+12. **Repair**: Fail noisily and early
+13. **Economy**: Conserve programmer time
+14. **Generation**: Write programs to write programs
+15. **Optimization**: Prototype first, polish later
+16. **Diversity**: No "one true way"
+17. **Extensibility**: Design for the future
+
 ## General Guidelines
 
-- Make plans and responses concise. Sacrifice grammar for concision.
-- At the end of each plan, list unresolved questions to answer (if any).
+- Concise plans/responses. Grammar optional.
+- List unresolved questions at end of plans.
 
 ## Project Overview
 
@@ -19,26 +41,27 @@ Full-stack TypeScript app using:
 
 ```bash
 # Development
-pnpm dev              # Start dev server on port 3000
+pnpm dev                  # Dev server on port 3000
 
-# Build & Preview
-pnpm build            # Production build
-pnpm preview          # Preview production build
+# Build
+pnpm build                # Production build
+pnpm preview              # Preview build
 
-# Type Checking & Linting
-pnpm typecheck        # Run TypeScript type checking (tsc --noEmit)
-pnpm lint             # Run Biome linter
-pnpm check            # Run Biome check (lint + format)
-pnpm format           # Run Biome formatter
+# Quality
+pnpm check:type           # TypeScript type check
+pnpm check:lint           # Biome linter
+pnpm check:biomecheck     # Biome check (lint + format)
+pnpm check:format         # Check formatting
+pnpm fix:format           # Auto-fix formatting
 
 # Testing
-pnpm test             # Run all tests (vitest run)
-npx vitest run src/path/to/file.test.ts   # Run single test file
-npx vitest run -t "test name"              # Run tests matching name
+pnpm test                 # Run all tests
+npx vitest run <file>     # Single test file
+npx vitest run -t "name"  # Tests matching name
 
 # Scripts
-pnpm script           # Run custom scripts via scripts/run.ts
-pnpm auth:migrate     # Generate Better Auth schema
+pnpm script               # Custom scripts (scripts/run.ts)
+pnpm auth:migrate         # Generate Better Auth schema
 ```
 
 ## Code Style
@@ -146,7 +169,8 @@ src/
 ## Key Patterns
 
 ### Data Grid
-Custom data grid with virtualization. Cell variants in `cell-variants/`.
+Custom data grid with virtualization in `src/components/data-grid/`.
+Cell variants: checkbox, combobox, date, file, long-text, multi-select, number, select, short-text, url.
 Uses `useDataGrid` hook for state management.
 
 ### Authentication
@@ -156,8 +180,15 @@ Better Auth configured in `convex/betterAuth/`. Client in `src/lib/auth-client.t
 TanStack Router with file-based routing in `src/routes/`.
 Route tree auto-generated in `src/routeTree.gen.ts`.
 
-## Cursor Rules
+### Notation System
+Exercise notation parsing in `src/lib/notation/` - handles sets, reps, rest, effort, weight.
 
-Additional context available in `.cursor/rules/`:
-- `convex_rules.mdc` - Detailed Convex patterns and examples
-- `tanstack-react-router_*.mdc` - TanStack Router documentation
+### AI Agent
+Convex agent with tools in `convex/agent.ts` and `convex/tools.ts`.
+Chat UI in `src/components/chat/`.
+
+## Additional Documentation
+
+See `.cursor/rules/` for detailed framework docs:
+- `convex_rules.mdc` - Convex patterns, validators, queries, mutations
+- `tanstack-react-router_*.mdc` - Router setup, API, routing patterns
