@@ -303,6 +303,18 @@ export const deleteCategory = userMutation({
       )
     );
 
+    // Clean up category assignments for all values in this category
+    for (const value of values) {
+      const assignments = await ctx.db
+        .query("categoryAssignments")
+        .withIndex("by_category_value", (q) =>
+          q.eq("categoryValueId", value._id)
+        )
+        .collect();
+
+      await Promise.all(assignments.map((a) => ctx.db.delete(a._id)));
+    }
+
     return null;
   },
 });

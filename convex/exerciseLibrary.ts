@@ -1,5 +1,4 @@
 import { internalQuery, internalMutation } from "./_generated/server";
-import type { Id } from "./_generated/dataModel";
 import { v } from "convex/values";
 import { userQuery, userMutation } from "./functions";
 
@@ -210,22 +209,25 @@ export const getExercise = userQuery({
       .withIndex("by_exercise", (q) => q.eq("exerciseId", args.exerciseId))
       .collect();
 
-    // Resolve category and value names
-    const categoryAssignments = await Promise.all(
-      assignments.map(async (assignment) => {
-        const categoryValue = await ctx.db.get(assignment.categoryValueId);
-        const category = categoryValue
-          ? await ctx.db.get(categoryValue.categoryId)
-          : null;
+    // Resolve category and value names, filtering out deleted ones
+    const categoryAssignments = (
+      await Promise.all(
+        assignments.map(async (assignment) => {
+          const categoryValue = await ctx.db.get(assignment.categoryValueId);
+          if (!categoryValue || categoryValue.deletedAt) return null;
 
-        return {
-          categoryId: category?._id ?? ("" as Id<"categories">),
-          categoryName: category?.name ?? "",
-          categoryValueId: assignment.categoryValueId,
-          categoryValueName: categoryValue?.name ?? "",
-        };
-      })
-    );
+          const category = await ctx.db.get(categoryValue.categoryId);
+          if (!category || category.deletedAt) return null;
+
+          return {
+            categoryId: category._id,
+            categoryName: category.name,
+            categoryValueId: assignment.categoryValueId,
+            categoryValueName: categoryValue.name,
+          };
+        })
+      )
+    ).filter((r) => r !== null);
 
     return {
       _id: exercise._id,
@@ -278,6 +280,18 @@ export const updateExercise = userMutation({
     // Update category assignments if provided
     if (args.categoryValueIds !== undefined) {
       const now = new Date().toISOString();
+
+      // Validate all category values belong to user's categories
+      for (const valueId of args.categoryValueIds) {
+        const value = await ctx.db.get(valueId);
+        if (!value) {
+          throw new Error("Category value not found");
+        }
+        const category = await ctx.db.get(value.categoryId);
+        if (!category || category.userId !== ctx.userId) {
+          throw new Error("Not authorized to use this category value");
+        }
+      }
 
       // Delete existing assignments
       const existingAssignments = await ctx.db

@@ -1,6 +1,6 @@
 import { useMutation, useQuery } from 'convex/react'
 import { Edit2, Plus, Save, Trash2, X } from 'lucide-react'
-import { useMemo, useState, useTransition } from 'react'
+import { useEffect, useMemo, useState, useTransition } from 'react'
 import { toast } from 'sonner'
 import { api } from '../../../convex/_generated/api'
 import type { Id } from '../../../convex/_generated/dataModel'
@@ -103,14 +103,14 @@ export function CategoryManager({ initialCategories }: CategoryManagerProps) {
   const handleCategorySaved = (_savedCategory: UICategory, tempId?: string) => {
     // Remove from newCategories if it was a new category that got saved
     if (tempId) {
-      setNewCategories(newCategories.filter((c) => c.id !== tempId))
+      setNewCategories((prev) => prev.filter((c) => c.id !== tempId))
     }
     // The live query will automatically pick up the saved category
   }
 
   const handleCategoryDeleted = (categoryId: string) => {
     // Remove from newCategories if unsaved
-    setNewCategories(newCategories.filter((c) => c.id !== categoryId))
+    setNewCategories((prev) => prev.filter((c) => c.id !== categoryId))
     // Saved categories will be removed via the live query update
   }
 
@@ -246,6 +246,13 @@ function CategoryCard({
   const [isEditing, setIsEditing] = useState(category.isNew ?? false)
   const [editState, setEditState] = useState<UICategory>(category)
   const [isPending, startTransition] = useTransition()
+
+  // Sync editState when category prop changes (from live query) while not editing
+  useEffect(() => {
+    if (!isEditing) {
+      setEditState(category)
+    }
+  }, [category, isEditing])
 
   const createCategoryMutation = useMutation(api.categories.createCategory)
   const updateCategoryMutation = useMutation(api.categories.updateCategory)
