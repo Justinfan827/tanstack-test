@@ -13,7 +13,8 @@
     "check:type": "tsc --noEmit",
     "fix:format": "biome format --fix",
     "script": "NODE_OPTIONS='--import=tsx' node -r dotenv/config ./scripts/run.ts",
-    "auth:migrate": "npx @better-auth/cli generate -y --config ./convex/betterAuth/auth.ts --output ./convex/betterAuth/generatedSchema.ts"
+    "auth:migrate": "npx @better-auth/cli generate -y --config ./convex/betterAuth/auth.ts --output ./convex/betterAuth/generatedSchema.ts",
+    "worktree": "./scripts/worktree-dev.sh"
   },
   "dependencies": {
     "@ai-sdk/openai": "2.0.88",

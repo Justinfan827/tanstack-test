@@ -11,7 +11,11 @@ const config = defineConfig({
     noExternal: ['@convex-dev/better-auth'],
   },
   plugins: [
-    devtools(),
+    devtools({
+      eventBusConfig: {
+        port: Number(process.env.DEVTOOLS_PORT) || 42069,
+      },
+    }),
     nitro(),
     // this is the plugin that enables path aliases
     viteTsConfigPaths({
