@@ -3,6 +3,7 @@ import { useCallback, useState, useTransition } from 'react'
 import { toast } from 'sonner'
 import { createFileRoute } from '@tanstack/react-router'
 import { api } from '../../convex/_generated/api'
+import type { Id } from '../../convex/_generated/dataModel'
 import { Skeleton } from '@/components/ui/skeleton'
 import { DeleteExerciseDialog } from '@/features/exercise-library/delete-exercise-dialog'
 import { ExerciseDetailsSheet } from '@/features/exercise-library/exercise-details-sheet'
@@ -17,12 +18,12 @@ export const Route = createFileRoute(
 
 function ExerciseLibraryPage() {
   const exercises = useQuery(api.exerciseLibrary.listExercises)
+  const categories = useQuery(api.categories.getCategoriesWithValues)
   const deleteExerciseMutation = useMutation(api.exerciseLibrary.deleteExercise)
 
-  // Sheet state
-  const [selectedExercise, setSelectedExercise] = useState<Exercise | null>(
-    null,
-  )
+  // Sheet state - store only the ID, fetch full data in sheet
+  const [selectedExerciseId, setSelectedExerciseId] =
+    useState<Id<'exerciseLibrary'> | null>(null)
   const [isSheetOpen, setIsSheetOpen] = useState(false)
 
   // Delete dialog state
@@ -39,7 +40,7 @@ function ExerciseLibraryPage() {
   const displayExercises = localExercises ?? exercises ?? []
 
   const handleViewExercise = useCallback((exercise: Exercise) => {
-    setSelectedExercise(exercise)
+    setSelectedExerciseId(exercise._id)
     setIsSheetOpen(true)
   }, [])
 
@@ -80,7 +81,6 @@ function ExerciseLibraryPage() {
           e._id === updatedExercise._id ? updatedExercise : e,
         )
       })
-      setSelectedExercise(updatedExercise)
     },
     [exercises],
   )
@@ -115,7 +115,8 @@ function ExerciseLibraryPage() {
         />
 
         <ExerciseDetailsSheet
-          exercise={selectedExercise}
+          exerciseId={selectedExerciseId}
+          categories={categories ?? []}
           open={isSheetOpen}
           onOpenChange={setIsSheetOpen}
           onExerciseUpdated={handleExerciseUpdated}

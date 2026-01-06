@@ -11,6 +11,7 @@ export type Exercise = {
   videoUrl?: string
   imageUrl?: string
   notes?: string
+  categoryAssignments?: ExerciseCategoryAssignment[]
 }
 
 /**

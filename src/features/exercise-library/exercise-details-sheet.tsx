@@ -1,11 +1,24 @@
 import { useForm } from '@tanstack/react-form'
-import { useMutation } from 'convex/react'
+import { useMutation, useQuery } from 'convex/react'
 import { Info } from 'lucide-react'
-import { useId, useTransition } from 'react'
+import { useEffect, useId, useTransition } from 'react'
 import { toast } from 'sonner'
 import { z } from 'zod'
 import { api } from '../../../convex/_generated/api'
+import type { Id } from '../../../convex/_generated/dataModel'
 import { Button } from '@/components/ui/button'
+import {
+  Combobox,
+  ComboboxChip,
+  ComboboxChips,
+  ComboboxChipsInput,
+  ComboboxContent,
+  ComboboxEmpty,
+  ComboboxItem,
+  ComboboxList,
+  ComboboxValue,
+  useComboboxAnchor,
+} from '@/components/ui/combobox'
 import {
   Field,
   FieldError,
@@ -23,7 +36,7 @@ import {
 } from '@/components/ui/sheet'
 import { Textarea } from '@/components/ui/textarea'
 import { YouTubeEmbed, isValidYouTubeUrl } from '@/components/ui/youtube-embed'
-import type { Exercise } from './types'
+import type { CategoryWithValues, Exercise } from './types'
 
 // Form validation schema
 const exerciseFormSchema = z.object({
@@ -33,17 +46,46 @@ const exerciseFormSchema = z.object({
     z.literal(''),
   ]),
   notes: z.string(),
+  categoryAssignments: z.record(z.string(), z.array(z.string())),
 })
 
 type ExerciseDetailsSheetProps = {
-  exercise: Exercise | null
+  exerciseId: Id<'exerciseLibrary'> | null
+  categories: CategoryWithValues[]
   open: boolean
   onOpenChange: (open: boolean) => void
   onExerciseUpdated: (exercise: Exercise) => void
 }
 
+/**
+ * Parse existing category assignments from exercise data.
+ */
+function parseExistingAssignments(
+  exercise: Exercise | null | undefined,
+  categories: CategoryWithValues[],
+): Record<string, string[]> {
+  const assignments: Record<string, string[]> = {}
+
+  // Initialize all categories with empty arrays
+  for (const category of categories) {
+    assignments[category._id] = []
+  }
+
+  // Populate from exercise's existing assignments
+  if (exercise?.categoryAssignments) {
+    for (const assignment of exercise.categoryAssignments) {
+      if (assignments[assignment.categoryId]) {
+        assignments[assignment.categoryId].push(assignment.categoryValueId)
+      }
+    }
+  }
+
+  return assignments
+}
+
 export function ExerciseDetailsSheet({
-  exercise,
+  exerciseId,
+  categories,
   open,
   onOpenChange,
   onExerciseUpdated,
@@ -51,6 +93,12 @@ export function ExerciseDetailsSheet({
   const formId = useId()
   const [isPending, startTransition] = useTransition()
   const updateExerciseMutation = useMutation(api.exerciseLibrary.updateExercise)
+
+  // Fetch exercise with category assignments
+  const exercise = useQuery(
+    api.exerciseLibrary.getExercise,
+    exerciseId ? { exerciseId } : 'skip',
+  )
 
   const isGlobal = exercise?.isGlobal ?? false
   const isEditable = !isGlobal
@@ -60,6 +108,7 @@ export function ExerciseDetailsSheet({
       name: exercise?.name ?? '',
       videoUrl: exercise?.videoUrl ?? '',
       notes: exercise?.notes ?? '',
+      categoryAssignments: parseExistingAssignments(exercise, categories),
     },
     validators: {
       onSubmit: exerciseFormSchema,
@@ -69,11 +118,36 @@ export function ExerciseDetailsSheet({
 
       startTransition(async () => {
         try {
+          // Flatten category value IDs
+          const categoryValueIds: Id<'categoryValues'>[] = []
+          for (const valueIds of Object.values(value.categoryAssignments)) {
+            for (const valueId of valueIds) {
+              categoryValueIds.push(valueId as Id<'categoryValues'>)
+            }
+          }
+
           await updateExerciseMutation({
             exerciseId: exercise._id,
             name: value.name,
             videoUrl: value.videoUrl || undefined,
             notes: value.notes || undefined,
+            categoryValueIds,
+          })
+
+          // Build updated category assignments for local state
+          const updatedAssignments = categoryValueIds.map((valueId) => {
+            const category = categories.find((c) =>
+              c.values.some((v) => v._id === valueId),
+            )
+            const categoryValue = category?.values.find(
+              (v) => v._id === valueId,
+            )
+            return {
+              categoryId: category?._id ?? ('' as Id<'categories'>),
+              categoryName: category?.name ?? '',
+              categoryValueId: valueId,
+              categoryValueName: categoryValue?.name ?? '',
+            }
           })
 
           // Update local state
@@ -82,6 +156,7 @@ export function ExerciseDetailsSheet({
             name: value.name,
             videoUrl: value.videoUrl || undefined,
             notes: value.notes || undefined,
+            categoryAssignments: updatedAssignments,
           })
 
           toast.success('Exercise updated successfully')
@@ -97,14 +172,18 @@ export function ExerciseDetailsSheet({
     },
   })
 
-  // Reset form when exercise changes
-  if (exercise && form.state.values.name !== exercise.name) {
-    form.reset({
-      name: exercise.name,
-      videoUrl: exercise.videoUrl ?? '',
-      notes: exercise.notes ?? '',
-    })
-  }
+  // Reset form when exercise data loads or changes
+  // biome-ignore lint/correctness/useExhaustiveDependencies: reset when exercise data is available
+  useEffect(() => {
+    if (exercise) {
+      form.reset({
+        name: exercise.name,
+        videoUrl: exercise.videoUrl ?? '',
+        notes: exercise.notes ?? '',
+        categoryAssignments: parseExistingAssignments(exercise, categories),
+      })
+    }
+  }, [exercise])
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
@@ -120,17 +199,27 @@ export function ExerciseDetailsSheet({
         <SheetHeader className="shrink-0 gap-2">
           {isEditable ? (
             <form.Field name="name">
-              {(field) => (
-                <Input
-                  id={field.name}
-                  name={field.name}
-                  value={field.state.value}
-                  onBlur={field.handleBlur}
-                  onChange={(e) => field.handleChange(e.target.value)}
-                  placeholder="Exercise name"
-                  className="text-lg font-semibold h-auto py-1 px-2 -mx-2 max-w-[calc(100%-2rem)]"
-                />
-              )}
+              {(field) => {
+                const isInvalid =
+                  field.state.meta.isTouched && !field.state.meta.isValid
+                return (
+                  <Field data-invalid={isInvalid} className="gap-1">
+                    <Input
+                      id={field.name}
+                      name={field.name}
+                      value={field.state.value}
+                      onBlur={field.handleBlur}
+                      onChange={(e) => field.handleChange(e.target.value)}
+                      aria-invalid={isInvalid}
+                      placeholder="Exercise name"
+                      className="text-lg font-semibold h-auto py-1 px-2 -mx-2 max-w-[calc(100%-2rem)]"
+                    />
+                    {isInvalid && (
+                      <FieldError errors={field.state.meta.errors} />
+                    )}
+                  </Field>
+                )
+              }}
             </form.Field>
           ) : (
             <SheetTitle>{exercise?.name}</SheetTitle>
@@ -209,6 +298,32 @@ export function ExerciseDetailsSheet({
                     )
                   }}
                 </form.Field>
+
+                {/* Category Assignments */}
+                {categories.length > 0 && (
+                  <div className="space-y-4 pt-4 border-t">
+                    <h3 className="text-sm font-medium">Categories</h3>
+                    <form.Field name="categoryAssignments">
+                      {(field) =>
+                        categories.map((category) => (
+                          <CategoryMultiSelect
+                            key={category._id}
+                            category={category}
+                            selectedValues={
+                              field.state.value[category._id] ?? []
+                            }
+                            onSelectionChange={(valueIds) =>
+                              field.handleChange({
+                                ...field.state.value,
+                                [category._id]: valueIds,
+                              })
+                            }
+                          />
+                        ))
+                      }
+                    </form.Field>
+                  </div>
+                )}
               </FieldGroup>
             </form>
           ) : (
@@ -258,5 +373,73 @@ export function ExerciseDetailsSheet({
         )}
       </SheetContent>
     </Sheet>
+  )
+}
+
+type CategoryMultiSelectProps = {
+  category: CategoryWithValues
+  selectedValues: string[]
+  onSelectionChange: (valueIds: string[]) => void
+}
+
+function CategoryMultiSelect({
+  category,
+  selectedValues,
+  onSelectionChange,
+}: CategoryMultiSelectProps) {
+  const anchor = useComboboxAnchor()
+
+  // Use string IDs as items (simpler pattern that works with multiple)
+  const items = category.values.map((v) => v._id as string)
+  const getValueName = (id: string) =>
+    category.values.find((v) => v._id === id)?.name ?? id
+
+  return (
+    <div className="space-y-2">
+      <FieldLabel>{category.name}</FieldLabel>
+      {category.description && (
+        <p className="text-xs text-muted-foreground">{category.description}</p>
+      )}
+
+      <Combobox
+        multiple
+        autoHighlight
+        items={items}
+        value={selectedValues}
+        onValueChange={onSelectionChange}
+        itemToStringLabel={getValueName}
+      >
+        <ComboboxChips ref={anchor}>
+          <ComboboxValue>
+            {(values: string[]) => (
+              <>
+                {values.map((valueId) => (
+                  <ComboboxChip key={valueId}>
+                    {getValueName(valueId)}
+                  </ComboboxChip>
+                ))}
+                <ComboboxChipsInput
+                  placeholder={
+                    selectedValues.length === 0
+                      ? `Select ${category.name.toLowerCase()}...`
+                      : ''
+                  }
+                />
+              </>
+            )}
+          </ComboboxValue>
+        </ComboboxChips>
+        <ComboboxContent anchor={anchor}>
+          <ComboboxEmpty>No values found.</ComboboxEmpty>
+          <ComboboxList>
+            {(item: string) => (
+              <ComboboxItem key={item} value={item}>
+                {getValueName(item)}
+              </ComboboxItem>
+            )}
+          </ComboboxList>
+        </ComboboxContent>
+      </Combobox>
+    </div>
   )
 }
