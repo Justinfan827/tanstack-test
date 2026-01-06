@@ -16,7 +16,6 @@ import {
   SelectContent,
   SelectItem,
   SelectTrigger,
-  SelectValue,
 } from '@/components/ui/select'
 import { Button } from '@/components/ui/button'
 import { Plus } from 'lucide-react'
@@ -84,7 +83,14 @@ export function AssignProgramDialog({
           >
             <SelectTrigger className="w-full">
               {selectedProgramId ? (
-                <SelectValue />
+                (() => {
+                  const selected = programs.find(
+                    (p) => p._id === selectedProgramId,
+                  )
+                  return selected
+                    ? `${selected.name} (${selected.dayCount} ${selected.dayCount === 1 ? 'day' : 'days'})`
+                    : 'Select a program...'
+                })()
               ) : (
                 <span className="text-muted-foreground">
                   Select a program...
