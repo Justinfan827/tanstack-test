@@ -65,8 +65,8 @@ export function AssignProgramDialog({
         <DialogHeader>
           <DialogTitle>Assign Program to {clientName}</DialogTitle>
           <DialogDescription>
-            Select a program template to copy to this client. The client will
-            receive their own copy that you can edit.
+            Choose a program template to assign. A copy will be created for{' '}
+            {clientName} that you can customize.
           </DialogDescription>
         </DialogHeader>
 
