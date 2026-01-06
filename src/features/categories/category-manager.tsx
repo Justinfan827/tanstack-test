@@ -238,7 +238,11 @@ type CategoryCardProps = {
   onRequestDelete: (category: UICategory) => void
 }
 
-function CategoryCard({ category, onSaved, onRequestDelete }: CategoryCardProps) {
+function CategoryCard({
+  category,
+  onSaved,
+  onRequestDelete,
+}: CategoryCardProps) {
   const [isEditing, setIsEditing] = useState(category.isNew ?? false)
   const [editState, setEditState] = useState<UICategory>(category)
   const [isPending, startTransition] = useTransition()
@@ -430,7 +434,9 @@ function CategoryCard({ category, onSaved, onRequestDelete }: CategoryCardProps)
                   <div key={value.id} className="flex items-center gap-2">
                     <Input
                       value={value.name}
-                      onChange={(e) => handleValueChange(value.id, e.target.value)}
+                      onChange={(e) =>
+                        handleValueChange(value.id, e.target.value)
+                      }
                       placeholder="Value name"
                       className="flex-1"
                     />

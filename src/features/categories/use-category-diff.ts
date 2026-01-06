@@ -1,10 +1,6 @@
 import { useMemo } from 'react'
 import type { Id } from '../../../convex/_generated/dataModel'
-import type {
-  CategoryOperation,
-  UICategory,
-  ValueOperation,
-} from './types'
+import type { CategoryOperation, UICategory, ValueOperation } from './types'
 
 /**
  * Compute the diff between original and current category state.
