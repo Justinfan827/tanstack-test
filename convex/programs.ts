@@ -119,6 +119,7 @@ export const updateProgram = userMutation({
 
 /**
  * Delete a program and all its days/rows.
+ * Trainers can delete programs they assigned to clients.
  */
 export const deleteProgram = userMutation({
   args: {
@@ -126,7 +127,15 @@ export const deleteProgram = userMutation({
   },
   returns: v.null(),
   handler: async (ctx, args) => {
-    await verifyProgramOwnership(ctx, args.programId, ctx.userId);
+    const program = await ctx.db.get(args.programId);
+    if (!program) throw new Error("Program not found");
+
+    // Allow delete if: owner OR trainer who assigned it
+    const isOwner = program.userId === ctx.userId;
+    const isAssigner = program.assignedByTrainerId === ctx.userId;
+    if (!isOwner && !isAssigner) {
+      throw new Error("Not authorized to delete this program");
+    }
 
     await deleteDaysForProgram(ctx, args.programId);
     await ctx.db.delete(args.programId);
@@ -242,6 +251,7 @@ export const replaceProgram = userMutation({
 
 /**
  * List user's programs (summary only).
+ * Excludes assigned programs (those are shown in client detail page).
  */
 export const listUserPrograms = userQuery({
   args: {},
@@ -261,6 +271,9 @@ export const listUserPrograms = userQuery({
 
     const result = [];
     for (const program of programs) {
+      // Skip assigned programs - they belong to clients
+      if (program.assignedByTrainerId) continue;
+
       const days = await ctx.db
         .query("days")
         .withIndex("by_program", (q) => q.eq("programId", program._id))
@@ -333,9 +346,12 @@ export const getProgram = userQuery({
   ),
   handler: async (ctx, args) => {
     const program = await ctx.db.get(args.programId);
-    if (!program || program.userId !== ctx.userId) {
-      return null;
-    }
+    if (!program) return null;
+
+    // Allow access if: owner OR trainer who assigned it
+    const isOwner = program.userId === ctx.userId;
+    const isAssigner = program.assignedByTrainerId === ctx.userId;
+    if (!isOwner && !isAssigner) return null;
 
     const days = await ctx.db
       .query("days")
@@ -720,5 +736,154 @@ export const internalReplaceProgram = internalMutation({
     await deleteDaysForProgram(ctx, args.programId);
     await insertDaysForProgram(ctx, args.programId, args.days as DayInput[]);
     return null;
+  },
+});
+
+// =============================================================================
+// Program Assignment (trainer -> client)
+// =============================================================================
+
+/**
+ * Assign a program to a client by copying it.
+ * The copy belongs to the client (userId = clientId).
+ */
+export const assignProgramToClient = userMutation({
+  args: {
+    programId: v.id("programs"),
+    clientId: v.id("users"),
+  },
+  returns: v.id("programs"),
+  handler: async (ctx, args) => {
+    // Verify trainer owns the source program
+    const program = await verifyProgramOwnership(ctx, args.programId, ctx.userId);
+
+    // Verify client exists and belongs to this trainer
+    const client = await ctx.db.get(args.clientId);
+    if (!client || client.trainerId !== ctx.userId) {
+      throw new Error("Client not found or not your client");
+    }
+
+    // Create program copy owned by client
+    const newProgramId = await ctx.db.insert("programs", {
+      name: program.name,
+      userId: args.clientId,
+      assignedByTrainerId: ctx.userId,
+      templateProgramId: args.programId,
+    });
+
+    // Copy all days and rows (reuse duplicate logic)
+    const days = await ctx.db
+      .query("days")
+      .withIndex("by_program_and_order", (q) => q.eq("programId", args.programId))
+      .order("asc")
+      .collect();
+
+    for (const day of days) {
+      const newDayId = await ctx.db.insert("days", {
+        clientId: crypto.randomUUID(),
+        programId: newProgramId,
+        dayLabel: day.dayLabel,
+        order: day.order,
+      });
+
+      const rows = await ctx.db
+        .query("programRows")
+        .withIndex("by_day_and_order", (q) => q.eq("dayId", day._id))
+        .order("asc")
+        .collect();
+
+      const groupIdMap = new Map<string, string>();
+
+      for (const row of rows) {
+        if (row.kind === "exercise") {
+          let newGroupId = row.groupId;
+          if (row.groupId) {
+            if (!groupIdMap.has(row.groupId)) {
+              groupIdMap.set(row.groupId, crypto.randomUUID());
+            }
+            newGroupId = groupIdMap.get(row.groupId);
+          }
+          await ctx.db.insert("programRows", {
+            kind: "exercise",
+            clientId: crypto.randomUUID(),
+            dayId: newDayId,
+            order: row.order,
+            libraryExerciseId: row.libraryExerciseId,
+            weight: row.weight,
+            reps: row.reps,
+            sets: row.sets,
+            notes: row.notes,
+            groupId: newGroupId,
+          });
+        } else {
+          if (!groupIdMap.has(row.groupId)) {
+            groupIdMap.set(row.groupId, crypto.randomUUID());
+          }
+          const newGroupId = groupIdMap.get(row.groupId)!;
+          await ctx.db.insert("programRows", {
+            kind: "header",
+            clientId: crypto.randomUUID(),
+            dayId: newDayId,
+            order: row.order,
+            groupId: newGroupId,
+            name: row.name,
+            sets: row.sets,
+          });
+        }
+      }
+    }
+
+    return newProgramId;
+  },
+});
+
+/**
+ * Get programs assigned to a specific client.
+ * Only the trainer who assigned them can view.
+ */
+export const getClientPrograms = userQuery({
+  args: {
+    clientId: v.id("users"),
+  },
+  returns: v.array(
+    v.object({
+      _id: v.id("programs"),
+      _creationTime: v.number(),
+      name: v.string(),
+      dayCount: v.number(),
+    })
+  ),
+  handler: async (ctx, args) => {
+    // Verify this is the trainer's client
+    const client = await ctx.db.get(args.clientId);
+    if (!client || client.trainerId !== ctx.userId) {
+      return [];
+    }
+
+    // Get programs owned by client that were assigned by this trainer
+    const programs = await ctx.db
+      .query("programs")
+      .withIndex("by_user", (q) => q.eq("userId", args.clientId))
+      .collect();
+
+    const result = [];
+    for (const program of programs) {
+      // Only show programs this trainer assigned
+      if (program.assignedByTrainerId !== ctx.userId) continue;
+
+      const days = await ctx.db
+        .query("days")
+        .withIndex("by_program", (q) => q.eq("programId", program._id))
+        .collect();
+
+      result.push({
+        _id: program._id,
+        _creationTime: program._creationTime,
+        name: program.name,
+        dayCount: days.length,
+      });
+    }
+
+    return result;
   },
 });
