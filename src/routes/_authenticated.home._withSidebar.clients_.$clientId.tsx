@@ -2,10 +2,12 @@ import { createFileRoute, Link } from '@tanstack/react-router'
 import { useQuery } from 'convex/react'
 import { User, Scale, Ruler, ChevronRight } from 'lucide-react'
 import { api } from '../../convex/_generated/api'
+import type { Id } from '../../convex/_generated/dataModel'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Separator } from '@/components/ui/separator'
 import { Button } from '@/components/ui/button'
+import { ClientProgramsList } from '@/components/client-programs-list'
 
 export const Route = createFileRoute(
   '/_authenticated/home/_withSidebar/clients_/$clientId',
@@ -101,15 +103,16 @@ function ClientDetailPage() {
           </Card>
         )}
 
-        {/* Placeholder: Programs */}
+        {/* Programs */}
         <Card>
           <CardHeader>
             <CardTitle>Programs</CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-muted-foreground text-sm">
-              Program assignment feature coming soon
-            </p>
+            <ClientProgramsList
+              clientId={clientId as Id<'users'>}
+              clientName={displayName}
+            />
           </CardContent>
         </Card>
 

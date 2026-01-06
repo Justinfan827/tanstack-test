@@ -73,7 +73,12 @@ export default defineSchema({
   programs: defineTable({
     name: v.string(),
     userId: v.id("users"),
-  }).index("by_user", ["userId"]),
+    // For assigned programs: who assigned it and from which template
+    assignedByTrainerId: v.optional(v.id("users")),
+    templateProgramId: v.optional(v.id("programs")),
+  })
+    .index("by_user", ["userId"])
+    .index("by_assigned_by_trainer", ["assignedByTrainerId"]),
 
   days: defineTable({
     clientId: v.string(),
