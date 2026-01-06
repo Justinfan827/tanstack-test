@@ -292,6 +292,44 @@ export const listUserPrograms = userQuery({
 });
 
 /**
+ * List programs assigned to a specific client by the current trainer.
+ * Used for creating/editing program links.
+ */
+export const listClientPrograms = userQuery({
+  args: {
+    clientId: v.id("users"),
+  },
+  returns: v.array(
+    v.object({
+      _id: v.id("programs"),
+      _creationTime: v.number(),
+      name: v.string(),
+    })
+  ),
+  handler: async (ctx, args) => {
+    // Verify the client belongs to this trainer
+    const client = await ctx.db.get(args.clientId);
+    if (!client || client.trainerId !== ctx.userId) {
+      return [];
+    }
+
+    // Get programs owned by the client that were assigned by this trainer
+    const programs = await ctx.db
+      .query("programs")
+      .withIndex("by_user", (q) => q.eq("userId", args.clientId))
+      .collect();
+
+    return programs
+      .filter((p) => p.assignedByTrainerId === ctx.userId)
+      .map((p) => ({
+        _id: p._id,
+        _creationTime: p._creationTime,
+        name: p.name,
+      }));
+  },
+});
+
+/**
  * Get full program with all days and rows (denormalized for UI).
  */
 export const getProgram = userQuery({

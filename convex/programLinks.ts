@@ -2,7 +2,7 @@ import { query } from "./_generated/server";
 import { v } from "convex/values";
 import type { Id } from "./_generated/dataModel";
 import { userMutation, userQuery } from "./functions";
-import { enrichUserWithAuth, verifyProgramOwnership } from "./helpers/auth";
+import { enrichUserWithAuth } from "./helpers/auth";
 
 /**
  * Create a public link to a program for a client.
@@ -16,12 +16,22 @@ export const createProgramLink = userMutation({
   },
   returns: v.id("programLinks"),
   handler: async (ctx, args) => {
-    await verifyProgramOwnership(ctx, args.programId, ctx.userId);
-
     // Verify trainer owns the client
     const client = await ctx.db.get(args.clientId);
     if (!client || client.trainerId !== ctx.userId) {
       throw new Error("Client not found or not owned by trainer");
+    }
+
+    // Verify the program is assigned to the client by this trainer
+    const program = await ctx.db.get(args.programId);
+    if (!program) {
+      throw new Error("Program not found");
+    }
+    if (
+      program.userId !== args.clientId ||
+      program.assignedByTrainerId !== ctx.userId
+    ) {
+      throw new Error("Program is not assigned to this client");
     }
 
     const linkId = await ctx.db.insert("programLinks", {
@@ -239,12 +249,64 @@ export const listProgramLinks = userQuery({
     })
   ),
   handler: async (ctx, args) => {
-    await verifyProgramOwnership(ctx, args.programId, ctx.userId);
+    // Verify trainer owns or assigned this program
+    const program = await ctx.db.get(args.programId);
+    if (!program) {
+      throw new Error("Program not found");
+    }
+    const isOwner = program.userId === ctx.userId;
+    const isAssigner = program.assignedByTrainerId === ctx.userId;
+    if (!isOwner && !isAssigner) {
+      throw new Error("Not authorized");
+    }
 
     return await ctx.db
       .query("programLinks")
       .withIndex("by_program_id", (q) => q.eq("programId", args.programId))
       .collect();
+  },
+});
+
+/**
+ * Update a program link (trainer only).
+ * Can change the program and/or notes.
+ */
+export const updateProgramLink = userMutation({
+  args: {
+    linkId: v.id("programLinks"),
+    programId: v.id("programs"),
+    trainerNotes: v.string(),
+  },
+  returns: v.null(),
+  handler: async (ctx, args) => {
+    const link = await ctx.db.get(args.linkId);
+    if (!link) {
+      throw new Error("Link not found");
+    }
+
+    // Verify trainer owns the link
+    if (link.userId !== ctx.userId) {
+      throw new Error("Not authorized to update this link");
+    }
+
+    // Verify the new program is assigned to the same client by this trainer
+    const newProgram = await ctx.db.get(args.programId);
+    if (!newProgram) {
+      throw new Error("Program not found");
+    }
+    if (
+      newProgram.userId !== link.clientId ||
+      newProgram.assignedByTrainerId !== ctx.userId
+    ) {
+      throw new Error("Program is not assigned to this client");
+    }
+
+    await ctx.db.patch(args.linkId, {
+      programId: args.programId,
+      trainerNotes: args.trainerNotes,
+    });
+
+    return null;
   },
 });
 
@@ -262,10 +324,69 @@ export const deleteProgramLink = userMutation({
       throw new Error("Link not found");
     }
 
-    await verifyProgramOwnership(ctx, link.programId, ctx.userId);
+    // Verify trainer owns the link
+    if (link.userId !== ctx.userId) {
+      throw new Error("Not authorized to delete this link");
+    }
 
     await ctx.db.delete(args.linkId);
 
     return null;
+  },
+});
+
+/**
+ * List all program links created by the current trainer.
+ * Enriches with client and program names.
+ */
+export const listAllTrainerLinks = userQuery({
+  args: {},
+  returns: v.array(
+    v.object({
+      _id: v.id("programLinks"),
+      _creationTime: v.number(),
+      clientId: v.id("users"),
+      programId: v.id("programs"),
+      trainerNotes: v.string(),
+      clientName: v.string(),
+      programName: v.string(),
+    })
+  ),
+  handler: async (ctx) => {
+    const links = await ctx.db
+      .query("programLinks")
+      .withIndex("by_user_id", (q) => q.eq("userId", ctx.userId))
+      .collect();
+
+    // Batch fetch all clients and programs
+    const clientIds = [...new Set(links.map((l) => l.clientId))];
+    const programIds = [...new Set(links.map((l) => l.programId))];
+
+    const [clients, programs] = await Promise.all([
+      Promise.all(clientIds.map((id) => ctx.db.get(id))),
+      Promise.all(programIds.map((id) => ctx.db.get(id))),
+    ]);
+
+    // Also fetch auth data for client names
+    const enrichedClients = await Promise.all(
+      clients.filter(Boolean).map((c) => enrichUserWithAuth(ctx, c!))
+    );
+    const clientMap = new Map<Id<"users">, string>(
+      enrichedClients.map((c) => [c._id, c.name])
+    );
+
+    const programMap = new Map(
+      programs.filter(Boolean).map((p) => [p!._id, p!.name])
+    );
+
+    return links.map((link) => ({
+      _id: link._id,
+      _creationTime: link._creationTime,
+      clientId: link.clientId,
+      programId: link.programId,
+      trainerNotes: link.trainerNotes,
+      clientName: clientMap.get(link.clientId) ?? "Unknown Client",
+      programName: programMap.get(link.programId) ?? "Unknown Program",
+    }));
   },
 });
