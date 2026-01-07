@@ -11,47 +11,75 @@ export interface CellSelectOption {
   count?: number
 }
 
+/**
+ * Base options shared by all cell variants.
+ * Supports row-aware readOnly via function.
+ */
+type BaseCellOpts = {
+  /**
+   * Static or dynamic read-only state.
+   * Function receives row.original for row-specific logic.
+   */
+  readOnly?: boolean | ((row: unknown) => boolean)
+}
+
 export type CellOpts =
-  | {
+  | (BaseCellOpts & {
       variant: 'short-text'
-    }
-  | {
+    })
+  | (BaseCellOpts & {
       variant: 'long-text'
-    }
-  | {
+    })
+  | (BaseCellOpts & {
       variant: 'number'
       min?: number
       max?: number
       step?: number
-    }
-  | {
+    })
+  | (BaseCellOpts & {
       variant: 'select'
       options: CellSelectOption[]
-    }
-  | {
+    })
+  | (BaseCellOpts & {
       variant: 'combobox'
       options: CellSelectOption[]
-    }
-  | {
+    })
+  | (BaseCellOpts & {
       variant: 'multi-select'
       options: CellSelectOption[]
-    }
-  | {
+    })
+  | (BaseCellOpts & {
       variant: 'checkbox'
-    }
-  | {
+    })
+  | (BaseCellOpts & {
       variant: 'date'
-    }
-  | {
+    })
+  | (BaseCellOpts & {
       variant: 'url'
-    }
-  | {
+    })
+  | (BaseCellOpts & {
       variant: 'file'
       maxFileSize?: number
       maxFiles?: number
       accept?: string
       multiple?: boolean
-    }
+    })
+  | (BaseCellOpts & {
+      /**
+       * Polymorphic cell variant - selects cell type based on row data.
+       * Uses row.original[discriminatorKey] to look up variant in variants map.
+       */
+      variant: 'polymorphic'
+      /**
+       * Map of discriminator value to cell config.
+       */
+      variants: Record<string, CellOpts>
+      /**
+       * Key in row.original to use as discriminator.
+       * @default 'kind'
+       */
+      discriminatorKey?: string
+    })
 
 export interface UpdateCell {
   rowIndex: number
@@ -205,6 +233,11 @@ export interface DataGridCellProps<TData> {
   isSearchMatch: boolean
   isActiveSearchMatch: boolean
   readOnly: boolean
+  /**
+   * Resolved cell options (after polymorphic resolution).
+   * Cell variants should use this instead of cell.column.columnDef.meta?.cell
+   */
+  cellOpts?: CellOpts
 }
 
 export interface FileCellData {

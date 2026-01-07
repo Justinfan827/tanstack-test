@@ -14,13 +14,13 @@ export function NumberCell<TData>({
   isSearchMatch,
   isActiveSearchMatch,
   readOnly,
+  cellOpts,
 }: DataGridCellProps<TData>) {
   const initialValue = cell.getValue() as number
   const [value, setValue] = React.useState(String(initialValue ?? ''))
   const inputRef = React.useRef<HTMLInputElement>(null)
   const containerRef = React.useRef<HTMLDivElement>(null)
 
-  const cellOpts = cell.column.columnDef.meta?.cell
   const numberCellOpts = cellOpts?.variant === 'number' ? cellOpts : null
   const min = numberCellOpts?.min
   const max = numberCellOpts?.max

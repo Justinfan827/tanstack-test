@@ -14,7 +14,9 @@ import {
 import { api } from '../../../convex/_generated/api'
 import type { Id } from '../../../convex/_generated/dataModel'
 
-export type ExerciseRow = {
+// Base row type for exercise rows
+export type ExerciseRowData = {
+  kind: 'exercise'
   _id: Id<'programRows'>
   clientId: string
   libraryExerciseId?: Id<'exerciseLibrary'>
@@ -24,7 +26,31 @@ export type ExerciseRow = {
   effort: string
   rest: string
   notes: string
+  groupId?: string
 }
+
+// Circuit header row type
+export type CircuitHeaderRowData = {
+  kind: 'circuitHeader'
+  _id: Id<'programRows'>
+  clientId: string
+  groupId: string
+  name: string
+  sets: string
+}
+
+// Union type for all grid rows
+export type GridRow = ExerciseRowData | CircuitHeaderRowData
+
+// Type guards
+export const isExerciseRow = (row: GridRow): row is ExerciseRowData =>
+  row.kind === 'exercise'
+
+export const isCircuitHeaderRow = (row: GridRow): row is CircuitHeaderRowData =>
+  row.kind === 'circuitHeader'
+
+export const isCircuitExercise = (row: GridRow): row is ExerciseRowData =>
+  row.kind === 'exercise' && row.groupId != null
 
 export function ProgramGrid({ programId }: { programId: Id<'programs'> }) {
   const program = useQuery(api.programs.getProgram, { programId })
@@ -36,35 +62,42 @@ export function ProgramGrid({ programId }: { programId: Id<'programs'> }) {
     addDay({ programId, dayLabel: `Day ${dayNumber}` })
   }, [addDay, programId, program?.days.length])
 
-  // Transform program data into grid rows for each day
+  // Transform program data into grid rows for each day (includes both exercise and circuitHeader rows)
   const daysWithGridData = useMemo(() => {
     if (!program) return []
 
     return program.days.map((day) => {
-      // Filter to exercise rows only and transform
-      const exerciseRows: ExerciseRow[] = day.rows
-        .filter(
-          (row): row is Extract<typeof row, { kind: 'exercise' }> =>
-            row.kind === 'exercise',
-        )
-        .map(
-          (row) =>
-            ({
-              _id: row._id,
-              clientId: row.clientId,
-              libraryExerciseId: row.libraryExerciseId,
-              weight: row.weight,
-              reps: row.reps,
-              sets: row.sets,
-              effort: row.effort ?? '',
-              rest: row.rest ?? '',
-              notes: row.notes,
-            }) satisfies ExerciseRow,
-        )
+      // Transform all rows (exercise + circuitHeader) for rendering
+      const gridRows: GridRow[] = day.rows.map((row) => {
+        if (row.kind === 'exercise') {
+          return {
+            kind: 'exercise',
+            _id: row._id,
+            clientId: row.clientId,
+            libraryExerciseId: row.libraryExerciseId,
+            weight: row.weight,
+            reps: row.reps,
+            sets: row.sets,
+            effort: row.effort ?? '',
+            rest: row.rest ?? '',
+            notes: row.notes,
+            groupId: row.groupId,
+          } satisfies ExerciseRowData
+        } else {
+          return {
+            kind: 'circuitHeader',
+            _id: row._id,
+            clientId: row.clientId,
+            groupId: row.groupId,
+            name: row.name,
+            sets: row.sets ?? '',
+          } satisfies CircuitHeaderRowData
+        }
+      })
 
       return {
         day,
-        rows: exerciseRows,
+        rows: gridRows,
       }
     })
   }, [program])
@@ -75,17 +108,23 @@ export function ProgramGrid({ programId }: { programId: Id<'programs'> }) {
       : []
   }, [exercises])
 
-  // Column definitions
-  const columns = useMemo<ColumnDef<ExerciseRow>[]>(
+  // Column definitions - work with GridRow (union type)
+  // Uses polymorphic cell variants and row-aware readOnly for circuit support
+  const columns = useMemo<ColumnDef<GridRow>[]>(
     () => [
       {
         id: 'libraryExerciseId',
-        accessorKey: 'libraryExerciseId',
+        // Exercise rows: libraryExerciseId, Circuit headers: name
+        accessorFn: (row) =>
+          row.kind === 'exercise' ? row.libraryExerciseId : row.name,
         header: 'Exercise',
         meta: {
           cell: {
-            variant: 'combobox',
-            options,
+            variant: 'polymorphic',
+            variants: {
+              exercise: { variant: 'combobox', options },
+              circuitHeader: { variant: 'short-text' },
+            },
           },
         },
         minSize: 240,
@@ -93,22 +132,26 @@ export function ProgramGrid({ programId }: { programId: Id<'programs'> }) {
       },
       {
         id: 'weight',
-        accessorKey: 'weight',
+        accessorFn: (row) => (row.kind === 'exercise' ? row.weight : ''),
         header: 'Weight',
         meta: {
           cell: {
             variant: 'short-text',
+            readOnly: (row: unknown) =>
+              (row as GridRow).kind === 'circuitHeader',
           },
         },
         enableResizing: false,
       },
       {
         id: 'reps',
-        accessorKey: 'reps',
+        accessorFn: (row) => (row.kind === 'exercise' ? row.reps : ''),
         header: 'Reps',
         meta: {
           cell: {
             variant: 'short-text',
+            readOnly: (row: unknown) =>
+              (row as GridRow).kind === 'circuitHeader',
           },
         },
         enableResizing: false,
@@ -120,24 +163,31 @@ export function ProgramGrid({ programId }: { programId: Id<'programs'> }) {
         meta: {
           cell: {
             variant: 'short-text',
+            // Circuit exercises inherit sets from header, so read-only
+            readOnly: (row: unknown) => {
+              const r = row as GridRow
+              return r.kind === 'exercise' && r.groupId != null
+            },
           },
         },
         enableResizing: false,
       },
       {
         id: 'effort',
-        accessorKey: 'effort',
+        accessorFn: (row) => (row.kind === 'exercise' ? row.effort : ''),
         header: 'RIR/RPE',
         meta: {
           cell: {
             variant: 'short-text',
+            readOnly: (row: unknown) =>
+              (row as GridRow).kind === 'circuitHeader',
           },
         },
         enableResizing: false,
       },
       {
         id: 'rest',
-        accessorKey: 'rest',
+        accessorFn: (row) => (row.kind === 'exercise' ? row.rest : ''),
         header: 'Rest',
         meta: {
           cell: {
@@ -148,7 +198,7 @@ export function ProgramGrid({ programId }: { programId: Id<'programs'> }) {
       },
       {
         id: 'notes',
-        accessorKey: 'notes',
+        accessorFn: (row) => (row.kind === 'exercise' ? row.notes : ''),
         header: 'Notes',
         meta: {
           cell: {
@@ -219,8 +269,8 @@ function DayGrid({
   dayId: Id<'days'>
   programId: Id<'programs'>
   dayLabel: string
-  rows: ExerciseRow[]
-  columns: ColumnDef<ExerciseRow>[]
+  rows: GridRow[]
+  columns: ColumnDef<GridRow>[]
 }) {
   const addEmptyRow = useMutation(
     api.programRows.addEmptyExerciseRow,
@@ -317,11 +367,11 @@ function DayGrid({
     // Set optimistic value
     localStore.setQuery(api.programs.getProgram, { programId }, newProgram)
   })
-  const prevDataRef = useRef<Map<Id<'programRows'>, ExerciseRow>>(new Map())
+  const prevDataRef = useRef<Map<Id<'programRows'>, GridRow>>(new Map())
 
   // Keep prev data in sync with incoming rows
   useEffect(() => {
-    const map = new Map<Id<'programRows'>, ExerciseRow>()
+    const map = new Map<Id<'programRows'>, GridRow>()
     for (const row of rows) {
       map.set(row._id, row)
     }
@@ -329,7 +379,7 @@ function DayGrid({
   }, [rows])
 
   const handleDataChange = useCallback(
-    (newData: ExerciseRow[]) => {
+    (newData: GridRow[]) => {
       // We use a ref instead of comparing against `rows` prop because:
       // If the user makes rapid edits before the Convex query refreshes,
       // the ref tracks the "last known local state" rather than the
@@ -346,6 +396,7 @@ function DayGrid({
           effort?: string
           rest?: string
           notes?: string
+          name?: string
         }
       }> = []
 
@@ -353,41 +404,60 @@ function DayGrid({
         const oldRow = oldDataMap.get(newRow._id)
         if (!oldRow) continue
 
-        // Collect all changed fields for this row
-        const fields: {
-          libraryExerciseId?: Id<'exerciseLibrary'>
-          weight?: string
-          reps?: string
-          sets?: string
-          effort?: string
-          rest?: string
-          notes?: string
-        } = {}
-        if (newRow.libraryExerciseId !== oldRow.libraryExerciseId) {
-          fields.libraryExerciseId = newRow.libraryExerciseId
-        }
-        if (newRow.weight !== oldRow.weight) {
-          fields.weight = newRow.weight
-        }
-        if (newRow.reps !== oldRow.reps) {
-          fields.reps = newRow.reps
-        }
-        if (newRow.sets !== oldRow.sets) {
-          fields.sets = newRow.sets
-        }
-        if (newRow.effort !== oldRow.effort) {
-          fields.effort = newRow.effort
-        }
-        if (newRow.rest !== oldRow.rest) {
-          fields.rest = newRow.rest
-        }
-        if (newRow.notes !== oldRow.notes) {
-          fields.notes = newRow.notes
+        // Handle exercise rows
+        if (newRow.kind === 'exercise' && oldRow.kind === 'exercise') {
+          const fields: {
+            libraryExerciseId?: Id<'exerciseLibrary'>
+            weight?: string
+            reps?: string
+            sets?: string
+            effort?: string
+            rest?: string
+            notes?: string
+          } = {}
+          if (newRow.libraryExerciseId !== oldRow.libraryExerciseId) {
+            fields.libraryExerciseId = newRow.libraryExerciseId
+          }
+          if (newRow.weight !== oldRow.weight) {
+            fields.weight = newRow.weight
+          }
+          if (newRow.reps !== oldRow.reps) {
+            fields.reps = newRow.reps
+          }
+          if (newRow.sets !== oldRow.sets) {
+            fields.sets = newRow.sets
+          }
+          if (newRow.effort !== oldRow.effort) {
+            fields.effort = newRow.effort
+          }
+          if (newRow.rest !== oldRow.rest) {
+            fields.rest = newRow.rest
+          }
+          if (newRow.notes !== oldRow.notes) {
+            fields.notes = newRow.notes
+          }
+
+          if (Object.keys(fields).length > 0) {
+            updates.push({ rowId: newRow._id, fields })
+          }
         }
 
-        // Only add update if there are changes
-        if (Object.keys(fields).length > 0) {
-          updates.push({ rowId: newRow._id, fields })
+        // Handle circuit header rows
+        if (
+          newRow.kind === 'circuitHeader' &&
+          oldRow.kind === 'circuitHeader'
+        ) {
+          const fields: { name?: string; sets?: string } = {}
+          if (newRow.name !== oldRow.name) {
+            fields.name = newRow.name
+          }
+          if (newRow.sets !== oldRow.sets) {
+            fields.sets = newRow.sets
+          }
+
+          if (Object.keys(fields).length > 0) {
+            updates.push({ rowId: newRow._id, fields })
+          }
         }
       }
 
@@ -399,7 +469,7 @@ function DayGrid({
       }
 
       // Update prev data after processing changes
-      const map = new Map<Id<'programRows'>, ExerciseRow>()
+      const map = new Map<Id<'programRows'>, GridRow>()
       for (const row of newData) {
         map.set(row._id, row)
       }
@@ -421,7 +491,7 @@ function DayGrid({
   }, [addEmptyRow, dayId, rows.length])
 
   const onRowsDelete = useCallback(
-    (rowsToDelete: ExerciseRow[]) => {
+    (rowsToDelete: GridRow[]) => {
       // Fire-and-forget: don't await so grid can immediately
       // refocus to adjacent row. Optimistic update removes rows
       // instantly; Convex rolls back if mutation fails.

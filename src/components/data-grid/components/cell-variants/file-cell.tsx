@@ -74,6 +74,7 @@ export function FileCell<TData>({
   isSearchMatch,
   isActiveSearchMatch,
   readOnly,
+  cellOpts,
 }: DataGridCellProps<TData>) {
   const cellValue = React.useMemo(
     () => (cell.getValue() as FileCellData[]) ?? [],
@@ -103,7 +104,6 @@ export function FileCell<TData>({
   const containerRef = React.useRef<HTMLDivElement>(null)
   const fileInputRef = React.useRef<HTMLInputElement>(null)
   const dropzoneRef = React.useRef<HTMLDivElement>(null)
-  const cellOpts = cell.column.columnDef.meta?.cell
   const sideOffset = -(containerRef.current?.clientHeight ?? 0)
 
   const fileCellOpts = cellOpts?.variant === 'file' ? cellOpts : null

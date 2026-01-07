@@ -33,6 +33,7 @@ export function MultiSelectCell<TData>({
   isSearchMatch,
   isActiveSearchMatch,
   readOnly,
+  cellOpts,
 }: DataGridCellProps<TData>) {
   const cellValue = React.useMemo(() => {
     const value = cell.getValue() as string[]
@@ -47,7 +48,6 @@ export function MultiSelectCell<TData>({
   const [searchValue, setSearchValue] = React.useState('')
   const containerRef = React.useRef<HTMLDivElement>(null)
   const inputRef = React.useRef<HTMLInputElement>(null)
-  const cellOpts = cell.column.columnDef.meta?.cell
   const options = cellOpts?.variant === 'multi-select' ? cellOpts.options : []
   const sideOffset = -(containerRef.current?.clientHeight ?? 0)
 

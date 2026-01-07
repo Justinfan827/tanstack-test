@@ -22,11 +22,11 @@ export function SelectCell<TData>({
   isSearchMatch,
   isActiveSearchMatch,
   readOnly,
+  cellOpts,
 }: DataGridCellProps<TData>) {
   const initialValue = cell.getValue() as string
   const [value, setValue] = React.useState(initialValue)
   const containerRef = React.useRef<HTMLDivElement>(null)
-  const cellOpts = cell.column.columnDef.meta?.cell
   const options = cellOpts?.variant === 'select' ? cellOpts.options : []
 
   const prevInitialValueRef = React.useRef(initialValue)

@@ -12,7 +12,10 @@ import { NumberCell } from '@/components/data-grid/components/cell-variants/numb
 import { SelectCell } from '@/components/data-grid/components/cell-variants/select-cell'
 import { ShortTextCell } from '@/components/data-grid/components/cell-variants/short-text-cell'
 import { UrlCell } from '@/components/data-grid/components/cell-variants/url-cell'
-import type { DataGridCellProps } from '@/components/data-grid/types/data-grid'
+import type {
+  CellOpts,
+  DataGridCellProps,
+} from '@/components/data-grid/types/data-grid'
 
 export const DataGridCell = React.memo(DataGridCellImpl, (prev, next) => {
   // Fast path: check stable primitive props first
@@ -57,8 +60,24 @@ function DataGridCellImpl<TData>({
   readOnly,
   rowHeight,
 }: DataGridCellProps<TData>) {
-  const cellOpts = cell.column.columnDef.meta?.cell
-  const variant = cellOpts?.variant ?? 'text'
+  const rowData = cell.row.original
+
+  // Resolve cell options, handling polymorphic variant
+  let cellOpts: CellOpts | undefined = cell.column.columnDef.meta?.cell
+  if (cellOpts?.variant === 'polymorphic') {
+    const key = cellOpts.discriminatorKey ?? 'kind'
+    const discriminator = (rowData as Record<string, unknown>)[key] as string
+    cellOpts = cellOpts.variants[discriminator]
+  }
+
+  const variant = cellOpts?.variant ?? 'short-text'
+
+  // Compute effective readOnly: grid-level OR cell-level
+  const cellReadOnly =
+    typeof cellOpts?.readOnly === 'function'
+      ? cellOpts.readOnly(rowData)
+      : (cellOpts?.readOnly ?? false)
+  const isReadOnly = readOnly || cellReadOnly
 
   let Comp: React.ComponentType<DataGridCellProps<TData>>
 
@@ -111,7 +130,8 @@ function DataGridCellImpl<TData>({
       isSelected={isSelected}
       isSearchMatch={isSearchMatch}
       isActiveSearchMatch={isActiveSearchMatch}
-      readOnly={readOnly}
+      readOnly={isReadOnly}
+      cellOpts={cellOpts}
     />
   )
 }

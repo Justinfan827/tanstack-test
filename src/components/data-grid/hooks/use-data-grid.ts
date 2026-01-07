@@ -2362,7 +2362,6 @@ function useDataGrid<TData>({
 
   const onDataGridKeyDown = React.useCallback(
     (event: KeyboardEvent) => {
-      console.log('GRID ONKEYDOWN', event)
       const currentState = store.getState()
       const { key, ctrlKey, metaKey, shiftKey, altKey } = event
       const isCtrlPressed = ctrlKey || metaKey
