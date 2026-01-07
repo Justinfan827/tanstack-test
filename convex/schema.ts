@@ -106,7 +106,7 @@ export default defineSchema({
         groupId: v.optional(v.string()),
       }),
       v.object({
-        kind: v.literal("header"),
+        kind: v.literal("circuitHeader"),
         clientId: v.string(),
         dayId: v.id("days"),
         order: v.number(),

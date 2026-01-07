@@ -113,7 +113,7 @@ export const addHeaderTool = createTool({
     if (!ctx.userId) {
       throw new Error("User not authenticated");
     }
-    const rowId = await ctx.runMutation(internal.programRows.internalAddHeader, {
+    const rowId = await ctx.runMutation(internal.programRows.internalAddCircuit, {
       clientId: crypto.randomUUID(),
       userId: ctx.userId as Id<"users">,
       dayId: args.dayId as Id<"days">,
@@ -221,7 +221,7 @@ export const updateHeaderTool = createTool({
     if (args.name !== undefined) updates.name = args.name;
     if (args.sets !== undefined) updates.sets = args.sets;
 
-    await ctx.runMutation(internal.programRows.internalUpdateHeader, {
+    await ctx.runMutation(internal.programRows.internalUpdateCircuitHeader, {
       userId: ctx.userId as Id<"users">,
       rowId: args.rowId as Id<"programRows">,
       updates,
@@ -231,7 +231,7 @@ export const updateHeaderTool = createTool({
 });
 
 export const deleteRowTool = createTool({
-  description: "Delete a single row (exercise or header) from a day.",
+  description: "Delete a single row (exercise or circuit header) from a day.",
   args: z.object({
     rowId: z.string().describe("The ID of the row to delete"),
   }),
@@ -247,19 +247,19 @@ export const deleteRowTool = createTool({
   },
 });
 
-export const deleteGroupTool = createTool({
+export const deleteCircuitTool = createTool({
   description:
-    "Delete a header and all exercises in its group. Use this to remove an entire superset/circuit.",
+    "Delete a circuit header and all exercises in its group. Use this to remove an entire superset/circuit.",
   args: z.object({
-    headerRowId: z.string().describe("The ID of the header row to delete"),
+    circuitHeaderRowId: z.string().describe("The ID of the circuit header row to delete"),
   }),
   handler: async (ctx, args): Promise<{ success: boolean }> => {
     if (!ctx.userId) {
       throw new Error("User not authenticated");
     }
-    await ctx.runMutation(internal.programRows.internalDeleteGroup, {
+    await ctx.runMutation(internal.programRows.internalDeleteCircuit, {
       userId: ctx.userId as Id<"users">,
-      headerRowId: args.headerRowId as Id<"programRows">,
+      circuitHeaderRowId: args.circuitHeaderRowId as Id<"programRows">,
     });
     return { success: true };
   },
@@ -476,7 +476,7 @@ export const replaceDayTool = createTool({
           };
         } else {
           return {
-            kind: "header" as const,
+            kind: "circuitHeader" as const,
             groupId: row.groupId,
             name: row.name,
             sets: row.sets,
@@ -599,7 +599,7 @@ export const replaceProgramTool = createTool({
             };
           } else {
             return {
-              kind: "header" as const,
+              kind: "circuitHeader" as const,
               groupId: row.groupId,
               name: row.name,
               sets: row.sets,
@@ -762,11 +762,11 @@ export const deleteLibraryExerciseTool = createTool({
 export const workoutProgramTools = {
   // Row-level
   addExercise: addExerciseTool,
-  addHeader: addHeaderTool,
+  addCircuit: addHeaderTool,
   updateExercise: updateExerciseTool,
-  updateHeader: updateHeaderTool,
+  updateCircuitHeader: updateHeaderTool,
   deleteRow: deleteRowTool,
-  deleteGroup: deleteGroupTool,
+  deleteCircuit: deleteCircuitTool,
   moveRow: moveRowTool,
   groupExercise: groupExerciseTool,
   ungroupExercise: ungroupExerciseTool,

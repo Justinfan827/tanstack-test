@@ -49,7 +49,7 @@ async function insertRowsForDay(
       });
     } else {
       await ctx.db.insert("programRows", {
-        kind: "header",
+        kind: "circuitHeader",
         clientId: crypto.randomUUID(),
         dayId,
         order: i,
@@ -229,7 +229,7 @@ export const duplicateDay = userMutation({
         }
         const newGroupId = groupIdMap.get(row.groupId)!;
         await ctx.db.insert("programRows", {
-          kind: "header",
+          kind: "circuitHeader",
           clientId: crypto.randomUUID(),
           dayId: newDayId,
           order: row.order,
@@ -425,7 +425,7 @@ export const internalDuplicateDay = internalMutation({
         }
         const newGroupId = groupIdMap.get(row.groupId)!;
         await ctx.db.insert("programRows", {
-          kind: "header",
+          kind: "circuitHeader",
           clientId: crypto.randomUUID(),
           dayId: newDayId,
           order: row.order,

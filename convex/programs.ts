@@ -18,7 +18,7 @@ type RowInput =
       groupId?: string;
     }
   | {
-      kind: "header";
+      kind: "circuitHeader";
       groupId: string;
       name: string;
       sets?: string;
@@ -63,7 +63,7 @@ async function insertDaysForProgram(
         });
       } else {
         await ctx.db.insert("programRows", {
-          kind: "header",
+          kind: "circuitHeader",
           clientId: crypto.randomUUID(),
           dayId,
           order: rowIndex,
@@ -211,7 +211,7 @@ export const duplicateProgram = userMutation({
           }
           const newGroupId = groupIdMap.get(row.groupId)!;
           await ctx.db.insert("programRows", {
-            kind: "header",
+            kind: "circuitHeader",
             clientId: crypto.randomUUID(),
             dayId: newDayId,
             order: row.order,
@@ -370,7 +370,7 @@ export const getProgram = userQuery({
                 _id: v.id("programRows"),
                 _creationTime: v.number(),
                 clientId: v.string(),
-                kind: v.literal("header"),
+                kind: v.literal("circuitHeader"),
                 order: v.number(),
                 groupId: v.string(),
                 name: v.string(),
@@ -433,7 +433,7 @@ export const getProgram = userQuery({
               _id: row._id,
               _creationTime: row._creationTime,
               clientId: row.clientId,
-              kind: "header" as const,
+              kind: "circuitHeader" as const,
               order: row.order,
               groupId: row.groupId,
               name: row.name,
@@ -563,7 +563,7 @@ export const internalGetProgram = internalQuery({
                 _id: v.id("programRows"),
                 _creationTime: v.number(),
                 clientId: v.string(),
-                kind: v.literal("header"),
+                kind: v.literal("circuitHeader"),
                 order: v.number(),
                 groupId: v.string(),
                 name: v.string(),
@@ -623,7 +623,7 @@ export const internalGetProgram = internalQuery({
               _id: row._id,
               _creationTime: row._creationTime,
               clientId: row.clientId,
-              kind: "header" as const,
+              kind: "circuitHeader" as const,
               order: row.order,
               groupId: row.groupId,
               name: row.name,
@@ -743,7 +743,7 @@ export const internalDuplicateProgram = internalMutation({
           }
           const newGroupId = groupIdMap.get(row.groupId)!;
           await ctx.db.insert("programRows", {
-            kind: "header",
+            kind: "circuitHeader",
             clientId: crypto.randomUUID(),
             dayId: newDayId,
             order: row.order,
@@ -859,7 +859,7 @@ export const assignProgramToClient = userMutation({
           }
           const newGroupId = groupIdMap.get(row.groupId)!;
           await ctx.db.insert("programRows", {
-            kind: "header",
+            kind: "circuitHeader",
             clientId: crypto.randomUUID(),
             dayId: newDayId,
             order: row.order,

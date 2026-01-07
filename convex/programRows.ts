@@ -2,11 +2,13 @@ import { internalMutation } from "./_generated/server";
 import { v } from "convex/values";
 import { userMutation } from "./functions";
 import { verifyDayOwnership, verifyRowOwnership } from "./helpers/auth";
-import { getNextRowOrder, renumberRows } from "./helpers/ordering";
-import { exerciseFieldUpdates, headerFieldUpdates } from "./helpers/validators";
+import { getNextRowOrder, insertRowAfter, renumberRows } from "./helpers/ordering";
+import { exerciseFieldUpdates, circuitHeaderFieldUpdates } from "./helpers/validators";
 
 /**
  * Add an exercise row to a day.
+ * If afterOrder is provided, inserts after that position.
+ * Otherwise appends to end.
  */
 export const addExercise = userMutation({
   args: {
@@ -18,6 +20,7 @@ export const addExercise = userMutation({
     sets: v.string(),
     notes: v.string(),
     groupId: v.optional(v.string()),
+    afterOrder: v.optional(v.number()),
   },
   returns: v.id("programRows"),
   handler: async (ctx, args) => {
@@ -34,7 +37,10 @@ export const addExercise = userMutation({
       }
     }
 
-    const order = await getNextRowOrder(ctx, args.dayId);
+    // Determine order: insert after specified position or append to end
+    const order = args.afterOrder !== undefined
+      ? await insertRowAfter(ctx, args.dayId, args.afterOrder)
+      : await getNextRowOrder(ctx, args.dayId);
 
     return await ctx.db.insert("programRows", {
       kind: "exercise",
@@ -80,9 +86,9 @@ export const addEmptyExerciseRow = userMutation({
 });
 
 /**
- * Add a header row to a day.
+ * Add a circuit (header row) to a day.
  */
-export const addHeader = userMutation({
+export const addCircuit = userMutation({
   args: {
     clientId: v.string(),
     dayId: v.id("days"),
@@ -97,7 +103,7 @@ export const addHeader = userMutation({
     const groupId = crypto.randomUUID();
 
     return await ctx.db.insert("programRows", {
-      kind: "header",
+      kind: "circuitHeader",
       clientId: args.clientId,
       dayId: args.dayId,
       order,
@@ -249,19 +255,19 @@ export const updateExercise = userMutation({
 });
 
 /**
- * Update a header row's fields.
+ * Update a circuit header row's fields.
  */
-export const updateHeader = userMutation({
+export const updateCircuitHeader = userMutation({
   args: {
     rowId: v.id("programRows"),
-    updates: headerFieldUpdates,
+    updates: circuitHeaderFieldUpdates,
   },
   returns: v.null(),
   handler: async (ctx, args) => {
     const { row } = await verifyRowOwnership(ctx, args.rowId, ctx.userId);
 
-    if (row.kind !== "header") {
-      throw new Error("Row is not a header");
+    if (row.kind !== "circuitHeader") {
+      throw new Error("Row is not a circuit header");
     }
 
     const patch: Record<string, unknown> = {};
@@ -282,6 +288,7 @@ export const updateHeader = userMutation({
 
 /**
  * Delete a single row.
+ * If the row is a circuitHeader, cascades to delete all exercises in the circuit.
  */
 export const deleteRow = userMutation({
   args: {
@@ -290,6 +297,18 @@ export const deleteRow = userMutation({
   returns: v.null(),
   handler: async (ctx, args) => {
     const { row } = await verifyRowOwnership(ctx, args.rowId, ctx.userId);
+
+    // If deleting a circuit header, cascade delete all exercises in the circuit
+    if (row.kind === "circuitHeader") {
+      const groupedRows = await ctx.db
+        .query("programRows")
+        .withIndex("by_group", (q) => q.eq("groupId", row.groupId))
+        .collect();
+
+      for (const groupedRow of groupedRows) {
+        await ctx.db.delete(groupedRow._id);
+      }
+    }
 
     await ctx.db.delete(args.rowId);
     await renumberRows(ctx, row.dayId);
@@ -328,18 +347,18 @@ export const batchDeleteRows = userMutation({
 });
 
 /**
- * Delete a header and all exercises in its group.
+ * Delete a circuit header and all exercises in its group.
  */
-export const deleteGroup = userMutation({
+export const deleteCircuit = userMutation({
   args: {
-    headerRowId: v.id("programRows"),
+    circuitHeaderRowId: v.id("programRows"),
   },
   returns: v.null(),
   handler: async (ctx, args) => {
-    const { row } = await verifyRowOwnership(ctx, args.headerRowId, ctx.userId);
+    const { row } = await verifyRowOwnership(ctx, args.circuitHeaderRowId, ctx.userId);
 
-    if (row.kind !== "header") {
-      throw new Error("Row is not a header");
+    if (row.kind !== "circuitHeader") {
+      throw new Error("Row is not a circuit header");
     }
 
     // Delete all exercises in this group
@@ -352,8 +371,8 @@ export const deleteGroup = userMutation({
       await ctx.db.delete(groupedRow._id);
     }
 
-    // Delete the header itself
-    await ctx.db.delete(args.headerRowId);
+    // Delete the circuit header itself
+    await ctx.db.delete(args.circuitHeaderRowId);
 
     await renumberRows(ctx, row.dayId);
 
@@ -410,7 +429,7 @@ export const moveRow = userMutation({
 });
 
 /**
- * Add an exercise to a group (set its groupId).
+ * Add an exercise to a circuit (set its groupId).
  */
 export const groupExercise = userMutation({
   args: {
@@ -425,15 +444,15 @@ export const groupExercise = userMutation({
       throw new Error("Row is not an exercise");
     }
 
-    // Verify the group exists (header with this groupId)
-    const header = await ctx.db
+    // Verify the circuit exists (circuitHeader with this groupId)
+    const circuitHeader = await ctx.db
       .query("programRows")
       .withIndex("by_group", (q) => q.eq("groupId", args.groupId))
-      .filter((q) => q.eq(q.field("kind"), "header"))
+      .filter((q) => q.eq(q.field("kind"), "circuitHeader"))
       .first();
 
-    if (!header) {
-      throw new Error("Group not found");
+    if (!circuitHeader) {
+      throw new Error("Circuit not found");
     }
 
     await ctx.db.patch(args.exerciseRowId, { groupId: args.groupId });
@@ -480,6 +499,7 @@ export const internalAddExercise = internalMutation({
     effort: v.optional(v.string()),
     notes: v.string(),
     groupId: v.optional(v.string()),
+    afterOrder: v.optional(v.number()),
   },
   returns: v.id("programRows"),
   handler: async (ctx, args) => {
@@ -493,7 +513,10 @@ export const internalAddExercise = internalMutation({
       throw new Error("Not authorized to use this exercise");
     }
 
-    const order = await getNextRowOrder(ctx, args.dayId);
+    // Determine order: insert after specified position or append to end
+    const order = args.afterOrder !== undefined
+      ? await insertRowAfter(ctx, args.dayId, args.afterOrder)
+      : await getNextRowOrder(ctx, args.dayId);
 
     return await ctx.db.insert("programRows", {
       kind: "exercise",
@@ -512,7 +535,7 @@ export const internalAddExercise = internalMutation({
   },
 });
 
-export const internalAddHeader = internalMutation({
+export const internalAddCircuit = internalMutation({
   args: {
     clientId: v.string(),
     userId: v.id("users"),
@@ -528,7 +551,7 @@ export const internalAddHeader = internalMutation({
     const groupId = crypto.randomUUID();
 
     return await ctx.db.insert("programRows", {
-      kind: "header",
+      kind: "circuitHeader",
       clientId: args.clientId,
       dayId: args.dayId,
       order,
@@ -597,18 +620,18 @@ export const internalUpdateExercise = internalMutation({
   },
 });
 
-export const internalUpdateHeader = internalMutation({
+export const internalUpdateCircuitHeader = internalMutation({
   args: {
     userId: v.id("users"),
     rowId: v.id("programRows"),
-    updates: headerFieldUpdates,
+    updates: circuitHeaderFieldUpdates,
   },
   returns: v.null(),
   handler: async (ctx, args) => {
     const { row } = await verifyRowOwnership(ctx, args.rowId, args.userId);
 
-    if (row.kind !== "header") {
-      throw new Error("Row is not a header");
+    if (row.kind !== "circuitHeader") {
+      throw new Error("Row is not a circuit header");
     }
 
     const patch: Record<string, unknown> = {};
@@ -636,6 +659,18 @@ export const internalDeleteRow = internalMutation({
   handler: async (ctx, args) => {
     const { row } = await verifyRowOwnership(ctx, args.rowId, args.userId);
 
+    // If deleting a circuit header, cascade delete all exercises in the circuit
+    if (row.kind === "circuitHeader") {
+      const groupedRows = await ctx.db
+        .query("programRows")
+        .withIndex("by_group", (q) => q.eq("groupId", row.groupId))
+        .collect();
+
+      for (const groupedRow of groupedRows) {
+        await ctx.db.delete(groupedRow._id);
+      }
+    }
+
     await ctx.db.delete(args.rowId);
     await renumberRows(ctx, row.dayId);
 
@@ -643,17 +678,17 @@ export const internalDeleteRow = internalMutation({
   },
 });
 
-export const internalDeleteGroup = internalMutation({
+export const internalDeleteCircuit = internalMutation({
   args: {
     userId: v.id("users"),
-    headerRowId: v.id("programRows"),
+    circuitHeaderRowId: v.id("programRows"),
   },
   returns: v.null(),
   handler: async (ctx, args) => {
-    const { row } = await verifyRowOwnership(ctx, args.headerRowId, args.userId);
+    const { row } = await verifyRowOwnership(ctx, args.circuitHeaderRowId, args.userId);
 
-    if (row.kind !== "header") {
-      throw new Error("Row is not a header");
+    if (row.kind !== "circuitHeader") {
+      throw new Error("Row is not a circuit header");
     }
 
     const groupedRows = await ctx.db
@@ -665,7 +700,7 @@ export const internalDeleteGroup = internalMutation({
       await ctx.db.delete(groupedRow._id);
     }
 
-    await ctx.db.delete(args.headerRowId);
+    await ctx.db.delete(args.circuitHeaderRowId);
     await renumberRows(ctx, row.dayId);
 
     return null;
@@ -727,14 +762,14 @@ export const internalGroupExercise = internalMutation({
       throw new Error("Row is not an exercise");
     }
 
-    const header = await ctx.db
+    const circuitHeader = await ctx.db
       .query("programRows")
       .withIndex("by_group", (q) => q.eq("groupId", args.groupId))
-      .filter((q) => q.eq(q.field("kind"), "header"))
+      .filter((q) => q.eq(q.field("kind"), "circuitHeader"))
       .first();
 
-    if (!header) {
-      throw new Error("Group not found");
+    if (!circuitHeader) {
+      throw new Error("Circuit not found");
     }
 
     await ctx.db.patch(args.exerciseRowId, { groupId: args.groupId });
