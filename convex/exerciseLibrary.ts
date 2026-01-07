@@ -165,14 +165,33 @@ export const deleteExercise = userMutation({
   },
 });
 
+// Return type for exercise with category assignments
+const exerciseWithCategoriesReturnType = v.object({
+  _id: v.id("exerciseLibrary"),
+  _creationTime: v.number(),
+  name: v.string(),
+  isGlobal: v.boolean(),
+  videoUrl: v.optional(v.string()),
+  imageUrl: v.optional(v.string()),
+  notes: v.optional(v.string()),
+  categoryAssignments: v.array(
+    v.object({
+      categoryId: v.id("categories"),
+      categoryName: v.string(),
+      categoryValueId: v.id("categoryValues"),
+      categoryValueName: v.string(),
+    })
+  ),
+});
+
 /**
- * Get a single exercise by ID.
+ * Get a single exercise by ID with its category assignments.
  */
 export const getExercise = userQuery({
   args: {
     exerciseId: v.id("exerciseLibrary"),
   },
-  returns: v.union(v.null(), exerciseReturnType),
+  returns: v.union(v.null(), exerciseWithCategoriesReturnType),
   handler: async (ctx, args) => {
     const exercise = await ctx.db.get(args.exerciseId);
     if (!exercise) {
@@ -184,6 +203,32 @@ export const getExercise = userQuery({
       return null;
     }
 
+    // Fetch category assignments
+    const assignments = await ctx.db
+      .query("categoryAssignments")
+      .withIndex("by_exercise", (q) => q.eq("exerciseId", args.exerciseId))
+      .collect();
+
+    // Resolve category and value names, filtering out deleted ones
+    const categoryAssignments = (
+      await Promise.all(
+        assignments.map(async (assignment) => {
+          const categoryValue = await ctx.db.get(assignment.categoryValueId);
+          if (!categoryValue || categoryValue.deletedAt) return null;
+
+          const category = await ctx.db.get(categoryValue.categoryId);
+          if (!category || category.deletedAt) return null;
+
+          return {
+            categoryId: category._id,
+            categoryName: category.name,
+            categoryValueId: assignment.categoryValueId,
+            categoryValueName: categoryValue.name,
+          };
+        })
+      )
+    ).filter((r) => r !== null);
+
     return {
       _id: exercise._id,
       _creationTime: exercise._creationTime,
@@ -192,12 +237,13 @@ export const getExercise = userQuery({
       videoUrl: exercise.videoUrl,
       imageUrl: exercise.imageUrl,
       notes: exercise.notes,
+      categoryAssignments,
     };
   },
 });
 
 /**
- * Update a custom exercise (only if owned by user).
+ * Update a custom exercise and its category assignments (only if owned by user).
  */
 export const updateExercise = userMutation({
   args: {
@@ -206,6 +252,7 @@ export const updateExercise = userMutation({
     videoUrl: v.optional(v.string()),
     imageUrl: v.optional(v.string()),
     notes: v.optional(v.string()),
+    categoryValueIds: v.optional(v.array(v.id("categoryValues"))),
   },
   returns: v.null(),
   handler: async (ctx, args) => {
@@ -222,12 +269,51 @@ export const updateExercise = userMutation({
       throw new Error("Not authorized");
     }
 
+    // Update exercise fields
     await ctx.db.patch(args.exerciseId, {
       name: args.name,
       videoUrl: args.videoUrl,
       imageUrl: args.imageUrl,
       notes: args.notes,
     });
+
+    // Update category assignments if provided
+    if (args.categoryValueIds !== undefined) {
+      const now = new Date().toISOString();
+
+      // Validate all category values belong to user's categories
+      for (const valueId of args.categoryValueIds) {
+        const value = await ctx.db.get(valueId);
+        if (!value) {
+          throw new Error("Category value not found");
+        }
+        const category = await ctx.db.get(value.categoryId);
+        if (!category || category.userId !== ctx.userId) {
+          throw new Error("Not authorized to use this category value");
+        }
+      }
+
+      // Delete existing assignments
+      const existingAssignments = await ctx.db
+        .query("categoryAssignments")
+        .withIndex("by_exercise", (q) => q.eq("exerciseId", args.exerciseId))
+        .collect();
+
+      await Promise.all(
+        existingAssignments.map((a) => ctx.db.delete(a._id))
+      );
+
+      // Create new assignments
+      await Promise.all(
+        args.categoryValueIds.map((categoryValueId) =>
+          ctx.db.insert("categoryAssignments", {
+            exerciseId: args.exerciseId,
+            categoryValueId,
+            createdAt: now,
+          })
+        )
+      );
+    }
 
     return null;
   },
