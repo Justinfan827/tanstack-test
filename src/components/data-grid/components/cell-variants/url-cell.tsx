@@ -33,6 +33,7 @@ export function UrlCell<TData>({
   isSearchMatch,
   isActiveSearchMatch,
   readOnly,
+  cellOpts,
 }: DataGridCellProps<TData>) {
   const initialValue = cell.getValue() as string
   const [value, setValue] = React.useState(initialValue ?? '')
@@ -48,18 +49,32 @@ export function UrlCell<TData>({
     }
   }
 
+  const fireUpdate = React.useCallback(
+    (val: unknown) => {
+      const update = { rowIndex, columnId, value: val }
+      if (cellOpts?.onDataUpdate) {
+        const updates = cellOpts.onDataUpdate(
+          update,
+          cell.row.original,
+          cell.getContext()
+            .table as unknown as import('@tanstack/react-table').Table<unknown>,
+        )
+        if (updates.length) tableMeta?.onDataUpdate?.(updates)
+      } else {
+        tableMeta?.onDataUpdate?.(update)
+      }
+    },
+    [tableMeta, rowIndex, columnId, cellOpts, cell],
+  )
+
   const onBlur = React.useCallback(() => {
     const currentValue = cellRef.current?.textContent?.trim() ?? ''
 
     if (!readOnly && currentValue !== initialValue) {
-      tableMeta?.onDataUpdate?.({
-        rowIndex,
-        columnId,
-        value: currentValue || null,
-      })
+      fireUpdate(currentValue || null)
     }
     tableMeta?.onCellEditingStop?.()
-  }, [tableMeta, rowIndex, columnId, initialValue, readOnly])
+  }, [tableMeta, initialValue, readOnly, fireUpdate])
 
   const onInput = React.useCallback(
     (event: React.FormEvent<HTMLDivElement>) => {
@@ -76,22 +91,14 @@ export function UrlCell<TData>({
           event.preventDefault()
           const currentValue = cellRef.current?.textContent?.trim() ?? ''
           if (!readOnly && currentValue !== initialValue) {
-            tableMeta?.onDataUpdate?.({
-              rowIndex,
-              columnId,
-              value: currentValue || null,
-            })
+            fireUpdate(currentValue || null)
           }
           tableMeta?.onCellEditingStop?.({ moveToNextRow: true })
         } else if (event.key === 'Tab') {
           event.preventDefault()
           const currentValue = cellRef.current?.textContent?.trim() ?? ''
           if (!readOnly && currentValue !== initialValue) {
-            tableMeta?.onDataUpdate?.({
-              rowIndex,
-              columnId,
-              value: currentValue || null,
-            })
+            fireUpdate(currentValue || null)
           }
           tableMeta?.onCellEditingStop?.({
             direction: event.shiftKey ? 'left' : 'right',
@@ -124,15 +131,7 @@ export function UrlCell<TData>({
         })
       }
     },
-    [
-      isEditing,
-      isFocused,
-      initialValue,
-      tableMeta,
-      rowIndex,
-      columnId,
-      readOnly,
-    ],
+    [isEditing, isFocused, initialValue, tableMeta, readOnly, fireUpdate],
   )
 
   const onLinkClick = React.useCallback(

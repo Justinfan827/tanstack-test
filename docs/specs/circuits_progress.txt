@@ -1,0 +1,207 @@
+# Circuits Feature Progress
+
+## Phase 1: Data Model & Backend - COMPLETE
+
+### Completed Tasks
+
+1. [x] Rename `header` -> `circuitHeader` in schema
+   - Updated convex/schema.ts
+   - Updated convex/helpers/validators.ts (headerRowInput -> circuitHeaderRowInput, headerFieldUpdates -> circuitHeaderFieldUpdates)
+   - Updated all references in convex/programRows.ts, convex/programs.ts, convex/days.ts, convex/tools.ts
+
+2. [x] Add `addCircuit` mutation
+   - Renamed `addHeader` -> `addCircuit` in convex/programRows.ts
+   - Renamed `internalAddHeader` -> `internalAddCircuit` in convex/programRows.ts
+   - Updated tool references in convex/tools.ts
+
+3. [x] Add `addExerciseToCircuit` mutation (via optional afterOrder)
+   - Added `afterOrder` optional parameter to `addExercise` mutation
+   - Added `afterOrder` optional parameter to `internalAddExercise` mutation
+   - Added `insertRowAfter` helper in convex/helpers/ordering.ts for position-based insertion
+
+4. [x] Update `deleteRow` to cascade for circuitHeaders
+   - Updated `deleteRow` in convex/programRows.ts to detect circuitHeader and cascade delete grouped exercises
+   - Updated `internalDeleteRow` with same cascade logic
+   - Note: `deleteCircuit` mutation still exists as explicit cascade delete (renamed from deleteGroup)
+
+### Migration
+- Skipped per user request (no existing header rows to migrate)
+
+### Files Modified
+- convex/schema.ts
+- convex/helpers/validators.ts
+- convex/helpers/ordering.ts
+- convex/programRows.ts
+- convex/programs.ts
+- convex/days.ts
+- convex/tools.ts
+
+---
+
+## Phase 2: Grid Row Rendering - COMPLETE (Refactored)
+
+### Initial Approach (Superseded)
+Originally implemented with `renderRow` prop and custom `CircuitHeaderRow` component.
+Refactored to config-driven approach using TanStack Table's column meta for better reusability.
+
+### Final Implementation
+
+1. [x] Include `circuitHeader` rows in grid data
+   - Updated `ExerciseRow` to polymorphic `GridRow` type (union of `ExerciseRowData` and `CircuitHeaderRowData`)
+   - Added type guards: `isExerciseRow`, `isCircuitHeaderRow`, `isCircuitExercise`
+   - Changed grid data transformation to include all rows (exercise + circuitHeader)
+
+2. [x] Extended `CellOpts` type for polymorphic cells
+   - Added `BaseCellOpts` with `readOnly?: boolean | ((row: unknown) => boolean)` for row-aware editability
+   - Added `polymorphic` variant that selects cell type based on row data:
+     ```typescript
+     | (BaseCellOpts & {
+         variant: 'polymorphic'
+         variants: Record<string, CellOpts>
+         discriminatorKey?: string  // default: 'kind'
+       })
+     ```
+
+3. [x] Updated `DataGridCell` for polymorphic resolution
+   - Resolves polymorphic variant using `row.original[discriminatorKey]`
+   - Computes effective `isReadOnly = gridReadOnly || cellReadOnly`
+   - Added `cellOpts?: CellOpts` to `DataGridCellProps` type
+   - Passes resolved `cellOpts` to cell component (fixes options not being passed)
+
+4. [x] Updated cell variants to use passed `cellOpts` prop
+   - Fixed bug where polymorphic cells couldn't access options
+   - Cell variants were reading from `cell.column.columnDef.meta?.cell` which returns 
+     `{ variant: 'polymorphic', ... }` instead of resolved variant
+   - Updated: combobox-cell, select-cell, multi-select-cell, number-cell, file-cell
+
+5. [x] Removed `renderRow` infrastructure (no longer needed)
+   - Removed `renderRow` prop from DataGrid
+   - Removed `RenderRow` type export
+   - Deleted `circuit-header-row.tsx`
+
+6. [x] Updated column definitions with polymorphic + readOnly config
+   ```typescript
+   // Exercise column - polymorphic variant
+   {
+     id: 'libraryExerciseId',
+     accessorFn: (row) => row.kind === 'exercise' ? row.libraryExerciseId : row.name,
+     meta: {
+       cell: {
+         variant: 'polymorphic',
+         variants: {
+           exercise: { variant: 'combobox', options },
+           circuitHeader: { variant: 'short-text' },
+         },
+       },
+     },
+   },
+   // Weight column - readOnly for circuit headers
+   {
+     id: 'weight',
+     meta: {
+       cell: {
+         variant: 'short-text',
+         readOnly: (row: unknown) => (row as GridRow).kind === 'circuitHeader',
+       },
+     },
+   },
+   // Sets column - readOnly for circuit exercises (inherit from header)
+   {
+     id: 'sets',
+     meta: {
+       cell: {
+         variant: 'short-text',
+         readOnly: (row: unknown) => {
+           const r = row as GridRow
+           return r.kind === 'exercise' && r.groupId != null
+         },
+       },
+     },
+   },
+   ```
+
+### Files Modified
+- src/components/data-grid/types/data-grid.ts (CellOpts extensions, DataGridCellProps.cellOpts)
+- src/components/data-grid/components/data-grid-cell.tsx (polymorphic resolution, pass cellOpts)
+- src/components/data-grid/components/data-grid.tsx (removed renderRow)
+- src/components/data-grid/components/data-grid-row.tsx (removed export)
+- src/components/data-grid/components/cell-variants/combobox-cell.tsx (use cellOpts prop)
+- src/components/data-grid/components/cell-variants/select-cell.tsx (use cellOpts prop)
+- src/components/data-grid/components/cell-variants/multi-select-cell.tsx (use cellOpts prop)
+- src/components/data-grid/components/cell-variants/number-cell.tsx (use cellOpts prop)
+- src/components/data-grid/components/cell-variants/file-cell.tsx (use cellOpts prop)
+- src/features/programstudio/program-grid.tsx (updated columns with new API)
+
+### Files Deleted
+- src/features/programstudio/circuit-header-row.tsx
+
+---
+
+## Phase 3: Cell Polymorphism & Editability - MOSTLY COMPLETE
+
+### Completed (via Phase 2 refactor)
+- [x] Conditional cell renderer for exercise name column (polymorphic variant)
+- [x] Header: `short-text-cell`
+- [x] Exercise: `combobox-cell`
+- [x] Circuit header: disable editing on weight/reps/effort columns (readOnly function)
+- [x] Circuit exercise: disable editing on sets column (readOnly function)
+
+### Completed (Phase 3 implementation)
+- [x] Added `notes` field to circuitHeader schema
+- [x] Added `notes` to `circuitHeaderFieldUpdates` validator
+- [x] Extended `batchUpdateRows` to handle both exercise and circuitHeader row types
+- [x] Added `readOnly` to rest column for circuit headers
+- [x] Updated `CircuitHeaderRowData` type with notes field
+- [x] Updated notes column to use `accessorKey: 'notes'` (works for both row types)
+- [x] Updated `batchUpdateRows` optimistic update to handle both row types
+- [x] Updated `getProgram` and `internalGetProgram` return types and handlers to include notes
+- [x] Added `fieldId` to `CellOpts` for polymorphic field mapping
+- [x] Updated `onDataUpdate` to resolve polymorphic variants and use `fieldId`
+- [x] Circuit header name editing now correctly updates `name` field (via `fieldId: 'name'`)
+
+### Remaining
+- [ ] Sets propagation: editing sets on circuit header should propagate to all exercises in the circuit
+  - `handleDataChange` has the logic but it's not triggering (needs investigation)
+  - The optimistic update also needs to propagate sets to circuit exercises
+
+### Implementation Notes
+- No dedicated `updateCircuitSets` mutation needed - sets propagation will be handled in frontend
+- All updates go through `batchUpdateRows` which handles both row types
+- Optimistic updates apply fields conditionally based on row kind
+
+### Bug Fix: Polymorphic Cell Field Mapping
+- Issue: Editing circuit header name was updating `libraryExerciseId` instead of `name`
+- Root cause: `onDataUpdate` used `columnId` as the field to update, but polymorphic cells may need different fields per row type
+- Solution: Added `fieldId` option to `CellOpts` - allows polymorphic variants to specify which field to update
+- Data grid's `onDataUpdate` now resolves polymorphic variants and uses `fieldId` (falling back to `columnId`)
+
+### Files Modified
+- convex/schema.ts (added notes to circuitHeader)
+- convex/helpers/validators.ts (added notes to circuitHeaderFieldUpdates)
+- convex/programRows.ts (extended batchUpdateRows for both row types)
+- convex/programs.ts (updated getProgram + internalGetProgram for notes)
+- src/features/programstudio/program-grid.tsx (type, accessor, readOnly, optimistic update, fieldId)
+- src/components/data-grid/types/data-grid.ts (added fieldId to BaseCellOpts)
+- src/components/data-grid/hooks/use-data-grid.ts (onDataUpdate resolves fieldId for polymorphic cells)
+
+### Follow-up TODOs
+- Memoization check in `DataGridCell`: May need to check `row.original[fieldId]` in addition to `columnId`
+- Paste operations: Verify paste into polymorphic cells with different `fieldId` values works correctly
+
+## Phase 4: Add Row UX - NOT STARTED
+
+- [ ] Add row dropdown (Exercise | Circuit)
+- [ ] Shift+Enter context detection
+- [ ] Dropdown on last circuit exercise
+- [ ] Wire mutations
+
+## Phase 5: Delete Operations - NOT STARTED
+
+- [ ] CMD+Backspace on header -> cascade delete
+- [ ] CMD+Backspace on circuit exercise -> delete row
+
+## Phase 6: Agent Integration - NOT STARTED
+
+- [ ] `createCircuit` tool
+- [ ] `addExerciseToCircuit` tool
+- [ ] Update existing tools for circuit awareness

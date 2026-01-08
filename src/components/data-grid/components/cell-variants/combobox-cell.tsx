@@ -22,11 +22,11 @@ export function ComboboxCell<TData>({
   isSearchMatch,
   isActiveSearchMatch,
   readOnly,
+  cellOpts,
 }: DataGridCellProps<TData>) {
   const initialValue = (cell.getValue() as string) ?? ''
   const [value, setValue] = React.useState(initialValue)
   const containerRef = React.useRef<HTMLDivElement>(null)
-  const cellOpts = cell.column.columnDef.meta?.cell
   const options = cellOpts?.variant === 'combobox' ? cellOpts.options : []
 
   // Create items array (values) and label map
@@ -42,14 +42,32 @@ export function ComboboxCell<TData>({
     setValue(initialValue)
   }
 
+  const fireUpdate = React.useCallback(
+    (val: unknown) => {
+      const update = { rowIndex, columnId, value: val }
+      if (cellOpts?.onDataUpdate) {
+        const updates = cellOpts.onDataUpdate(
+          update,
+          cell.row.original,
+          cell.getContext()
+            .table as unknown as import('@tanstack/react-table').Table<unknown>,
+        )
+        if (updates.length) tableMeta?.onDataUpdate?.(updates)
+      } else {
+        tableMeta?.onDataUpdate?.(update)
+      }
+    },
+    [tableMeta, rowIndex, columnId, cellOpts, cell],
+  )
+
   const onValueChange = React.useCallback(
     (newValue: string | null) => {
       if (readOnly || !newValue) return
       setValue(newValue)
-      tableMeta?.onDataUpdate?.({ rowIndex, columnId, value: newValue })
+      fireUpdate(newValue)
       tableMeta?.onCellEditingStop?.()
     },
-    [tableMeta, rowIndex, columnId, readOnly],
+    [tableMeta, readOnly, fireUpdate],
   )
 
   const onOpenChange = React.useCallback(

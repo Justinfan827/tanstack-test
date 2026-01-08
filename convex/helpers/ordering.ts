@@ -17,6 +17,35 @@ export async function getNextRowOrder(
 }
 
 /**
+ * Insert a row at a specific position (afterOrder + 1).
+ * Shifts all subsequent rows down.
+ * Returns the order value for the new row.
+ */
+export async function insertRowAfter(
+  ctx: MutationCtx,
+  dayId: Id<"days">,
+  afterOrder: number
+): Promise<number> {
+  const newOrder = afterOrder + 1;
+
+  // Get all rows that need to be shifted
+  const rowsToShift = await ctx.db
+    .query("programRows")
+    .withIndex("by_day_and_order", (q) => q.eq("dayId", dayId))
+    .order("asc")
+    .collect();
+
+  // Shift rows with order >= newOrder
+  for (const row of rowsToShift) {
+    if (row.order >= newOrder) {
+      await ctx.db.patch(row._id, { order: row.order + 1 });
+    }
+  }
+
+  return newOrder;
+}
+
+/**
  * Renumber all rows in a day sequentially (0, 1, 2, ...).
  * Call after delete/move operations.
  */

@@ -14,13 +14,13 @@ export function NumberCell<TData>({
   isSearchMatch,
   isActiveSearchMatch,
   readOnly,
+  cellOpts,
 }: DataGridCellProps<TData>) {
   const initialValue = cell.getValue() as number
   const [value, setValue] = React.useState(String(initialValue ?? ''))
   const inputRef = React.useRef<HTMLInputElement>(null)
   const containerRef = React.useRef<HTMLDivElement>(null)
 
-  const cellOpts = cell.column.columnDef.meta?.cell
   const numberCellOpts = cellOpts?.variant === 'number' ? cellOpts : null
   const min = numberCellOpts?.min
   const max = numberCellOpts?.max
@@ -34,13 +34,31 @@ export function NumberCell<TData>({
     setValue(String(initialValue ?? ''))
   }
 
+  const fireUpdate = React.useCallback(
+    (val: unknown) => {
+      const update = { rowIndex, columnId, value: val }
+      if (cellOpts?.onDataUpdate) {
+        const updates = cellOpts.onDataUpdate(
+          update,
+          cell.row.original,
+          cell.getContext()
+            .table as unknown as import('@tanstack/react-table').Table<unknown>,
+        )
+        if (updates.length) tableMeta?.onDataUpdate?.(updates)
+      } else {
+        tableMeta?.onDataUpdate?.(update)
+      }
+    },
+    [tableMeta, rowIndex, columnId, cellOpts, cell],
+  )
+
   const onBlur = React.useCallback(() => {
     const numValue = value === '' ? null : Number(value)
     if (!readOnly && numValue !== initialValue) {
-      tableMeta?.onDataUpdate?.({ rowIndex, columnId, value: numValue })
+      fireUpdate(numValue)
     }
     tableMeta?.onCellEditingStop?.()
-  }, [tableMeta, rowIndex, columnId, initialValue, value, readOnly])
+  }, [tableMeta, initialValue, value, readOnly, fireUpdate])
 
   const onChange = React.useCallback(
     (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -56,14 +74,14 @@ export function NumberCell<TData>({
           event.preventDefault()
           const numValue = value === '' ? null : Number(value)
           if (numValue !== initialValue) {
-            tableMeta?.onDataUpdate?.({ rowIndex, columnId, value: numValue })
+            fireUpdate(numValue)
           }
           tableMeta?.onCellEditingStop?.({ moveToNextRow: true })
         } else if (event.key === 'Tab') {
           event.preventDefault()
           const numValue = value === '' ? null : Number(value)
           if (numValue !== initialValue) {
-            tableMeta?.onDataUpdate?.({ rowIndex, columnId, value: numValue })
+            fireUpdate(numValue)
           }
           tableMeta?.onCellEditingStop?.({
             direction: event.shiftKey ? 'left' : 'right',
@@ -83,7 +101,7 @@ export function NumberCell<TData>({
         }
       }
     },
-    [isEditing, isFocused, initialValue, tableMeta, rowIndex, columnId, value],
+    [isEditing, isFocused, initialValue, tableMeta, value, fireUpdate],
   )
 
   React.useEffect(() => {

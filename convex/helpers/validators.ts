@@ -16,19 +16,19 @@ export const exerciseRowInput = v.object({
 });
 
 /**
- * Validator for header row input (without dayId/order - computed at insert time)
+ * Validator for circuit header row input (without dayId/order - computed at insert time)
  */
-export const headerRowInput = v.object({
-  kind: v.literal("header"),
+export const circuitHeaderRowInput = v.object({
+  kind: v.literal("circuitHeader"),
   groupId: v.string(),
   name: v.string(),
   sets: v.optional(v.string()),
 });
 
 /**
- * Validator for any row input (union of exercise and header)
+ * Validator for any row input (union of exercise and circuitHeader)
  */
-export const rowInput = v.union(exerciseRowInput, headerRowInput);
+export const rowInput = v.union(exerciseRowInput, circuitHeaderRowInput);
 
 /**
  * Validator for day input with rows (for bulk operations)
@@ -53,9 +53,10 @@ export const exerciseFieldUpdates = v.object({
 });
 
 /**
- * Validator for header field updates
+ * Validator for circuit header field updates
  */
-export const headerFieldUpdates = v.object({
+export const circuitHeaderFieldUpdates = v.object({
   name: v.optional(v.string()),
   sets: v.optional(v.union(v.string(), v.null())), // null to clear
+  notes: v.optional(v.union(v.string(), v.null())), // null to clear
 });

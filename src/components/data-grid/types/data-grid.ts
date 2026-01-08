@@ -1,4 +1,4 @@
-import type { Cell, RowData, TableMeta } from '@tanstack/react-table'
+import type { Cell, RowData, Table, TableMeta } from '@tanstack/react-table'
 
 export type Direction = 'ltr' | 'rtl'
 
@@ -11,53 +11,99 @@ export interface CellSelectOption {
   count?: number
 }
 
-export type CellOpts =
-  | {
-      variant: 'short-text'
-    }
-  | {
-      variant: 'long-text'
-    }
-  | {
-      variant: 'number'
-      min?: number
-      max?: number
-      step?: number
-    }
-  | {
-      variant: 'select'
-      options: CellSelectOption[]
-    }
-  | {
-      variant: 'combobox'
-      options: CellSelectOption[]
-    }
-  | {
-      variant: 'multi-select'
-      options: CellSelectOption[]
-    }
-  | {
-      variant: 'checkbox'
-    }
-  | {
-      variant: 'date'
-    }
-  | {
-      variant: 'url'
-    }
-  | {
-      variant: 'file'
-      maxFileSize?: number
-      maxFiles?: number
-      accept?: string
-      multiple?: boolean
-    }
-
 export interface UpdateCell {
   rowIndex: number
   columnId: string
   value: unknown
 }
+
+/**
+ * Base options shared by all cell variants.
+ * Supports row-aware readOnly via function.
+ */
+type BaseCellOpts = {
+  /**
+   * Static or dynamic read-only state.
+   * Function receives row.original for row-specific logic.
+   */
+  readOnly?: boolean | ((row: unknown) => boolean)
+  /**
+   * Override which field to update when this cell changes.
+   * Defaults to the column's id.
+   * Useful for polymorphic cells where different row types need different fields.
+   */
+  fieldId?: string
+  /**
+   * Override the default cell update behavior.
+   * By default, cells call `tableMeta.onDataUpdate` with the single cell update.
+   * If this function is provided, its returned updates are fired INSTEAD of the default.
+   * Return `[update]` to keep default behavior, or `[update, ...others]` to add propagated updates.
+   * Return `[]` to suppress the update entirely.
+   */
+  onDataUpdate?: (
+    update: UpdateCell,
+    rowData: unknown,
+    table: Table<unknown>,
+  ) => UpdateCell[]
+}
+
+export type CellOpts =
+  | (BaseCellOpts & {
+      variant: 'short-text'
+    })
+  | (BaseCellOpts & {
+      variant: 'long-text'
+    })
+  | (BaseCellOpts & {
+      variant: 'number'
+      min?: number
+      max?: number
+      step?: number
+    })
+  | (BaseCellOpts & {
+      variant: 'select'
+      options: CellSelectOption[]
+    })
+  | (BaseCellOpts & {
+      variant: 'combobox'
+      options: CellSelectOption[]
+    })
+  | (BaseCellOpts & {
+      variant: 'multi-select'
+      options: CellSelectOption[]
+    })
+  | (BaseCellOpts & {
+      variant: 'checkbox'
+    })
+  | (BaseCellOpts & {
+      variant: 'date'
+    })
+  | (BaseCellOpts & {
+      variant: 'url'
+    })
+  | (BaseCellOpts & {
+      variant: 'file'
+      maxFileSize?: number
+      maxFiles?: number
+      accept?: string
+      multiple?: boolean
+    })
+  | (BaseCellOpts & {
+      /**
+       * Polymorphic cell variant - selects cell type based on row data.
+       * Uses row.original[discriminatorKey] to look up variant in variants map.
+       */
+      variant: 'polymorphic'
+      /**
+       * Map of discriminator value to cell config.
+       */
+      variants: Record<string, CellOpts>
+      /**
+       * Key in row.original to use as discriminator.
+       * @default 'kind'
+       */
+      discriminatorKey?: string
+    })
 
 declare module '@tanstack/react-table' {
   // biome-ignore lint/correctness/noUnusedVariables: TData and TValue are used in the ColumnMeta interface
@@ -205,6 +251,11 @@ export interface DataGridCellProps<TData> {
   isSearchMatch: boolean
   isActiveSearchMatch: boolean
   readOnly: boolean
+  /**
+   * Resolved cell options (after polymorphic resolution).
+   * Cell variants should use this instead of cell.column.columnDef.meta?.cell
+   */
+  cellOpts?: CellOpts
 }
 
 export interface FileCellData {

@@ -21,6 +21,7 @@ export function LongTextCell<TData>({
   isSearchMatch,
   isActiveSearchMatch,
   readOnly,
+  cellOpts,
 }: DataGridCellProps<TData>) {
   const initialValue = cell.getValue() as string
   const [value, setValue] = React.useState(initialValue ?? '')
@@ -34,28 +35,46 @@ export function LongTextCell<TData>({
     setValue(initialValue ?? '')
   }
 
+  const fireUpdate = React.useCallback(
+    (val: unknown) => {
+      const update = { rowIndex, columnId, value: val }
+      if (cellOpts?.onDataUpdate) {
+        const updates = cellOpts.onDataUpdate(
+          update,
+          cell.row.original,
+          cell.getContext()
+            .table as unknown as import('@tanstack/react-table').Table<unknown>,
+        )
+        if (updates.length) tableMeta?.onDataUpdate?.(updates)
+      } else {
+        tableMeta?.onDataUpdate?.(update)
+      }
+    },
+    [tableMeta, rowIndex, columnId, cellOpts, cell],
+  )
+
   const debouncedSave = useDebouncedCallback((newValue: string) => {
     if (!readOnly) {
-      tableMeta?.onDataUpdate?.({ rowIndex, columnId, value: newValue })
+      fireUpdate(newValue)
     }
   }, 300)
 
   const onSave = React.useCallback(() => {
     // Immediately save any pending changes and close the popover
     if (!readOnly && value !== initialValue) {
-      tableMeta?.onDataUpdate?.({ rowIndex, columnId, value })
+      fireUpdate(value)
     }
     tableMeta?.onCellEditingStop?.()
-  }, [tableMeta, value, initialValue, rowIndex, columnId, readOnly])
+  }, [tableMeta, value, initialValue, readOnly, fireUpdate])
 
   const onCancel = React.useCallback(() => {
     // Restore the original value
     setValue(initialValue ?? '')
     if (!readOnly) {
-      tableMeta?.onDataUpdate?.({ rowIndex, columnId, value: initialValue })
+      fireUpdate(initialValue)
     }
     tableMeta?.onCellEditingStop?.()
-  }, [tableMeta, initialValue, rowIndex, columnId, readOnly])
+  }, [tableMeta, initialValue, readOnly, fireUpdate])
 
   const onOpenChange = React.useCallback(
     (open: boolean) => {
@@ -64,12 +83,12 @@ export function LongTextCell<TData>({
       } else {
         // Immediately save any pending changes when closing
         if (!readOnly && value !== initialValue) {
-          tableMeta?.onDataUpdate?.({ rowIndex, columnId, value })
+          fireUpdate(value)
         }
         tableMeta?.onCellEditingStop?.()
       }
     },
-    [tableMeta, value, initialValue, rowIndex, columnId, readOnly],
+    [tableMeta, value, initialValue, rowIndex, columnId, readOnly, fireUpdate],
   )
 
   // TODO: base ui does not have this prop.
@@ -88,10 +107,10 @@ export function LongTextCell<TData>({
   const onBlur = React.useCallback(() => {
     // Immediately save any pending changes on blur
     if (!readOnly && value !== initialValue) {
-      tableMeta?.onDataUpdate?.({ rowIndex, columnId, value })
+      fireUpdate(value)
     }
     tableMeta?.onCellEditingStop?.()
-  }, [tableMeta, value, initialValue, rowIndex, columnId, readOnly])
+  }, [tableMeta, value, initialValue, readOnly, fireUpdate])
 
   const onChange = React.useCallback(
     (event: React.ChangeEvent<HTMLTextAreaElement>) => {
@@ -114,7 +133,7 @@ export function LongTextCell<TData>({
         event.preventDefault()
         // Save any pending changes
         if (value !== initialValue) {
-          tableMeta?.onDataUpdate?.({ rowIndex, columnId, value })
+          fireUpdate(value)
         }
         tableMeta?.onCellEditingStop?.({
           direction: event.shiftKey ? 'left' : 'right',
@@ -124,7 +143,7 @@ export function LongTextCell<TData>({
       // Stop propagation to prevent grid navigation
       event.stopPropagation()
     },
-    [onSave, onCancel, value, initialValue, tableMeta, rowIndex, columnId],
+    [onSave, onCancel, value, initialValue, tableMeta, fireUpdate],
   )
 
   return (
