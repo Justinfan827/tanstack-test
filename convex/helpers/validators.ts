@@ -58,4 +58,5 @@ export const exerciseFieldUpdates = v.object({
 export const circuitHeaderFieldUpdates = v.object({
   name: v.optional(v.string()),
   sets: v.optional(v.union(v.string(), v.null())), // null to clear
+  notes: v.optional(v.union(v.string(), v.null())), // null to clear
 });

@@ -148,6 +148,7 @@ export const updateField = userMutation({
 /**
  * Batch update multiple rows, grouping all field changes per row.
  * More efficient than calling updateField multiple times.
+ * Supports both exercise and circuitHeader row types.
  */
 export const batchUpdateRows = userMutation({
   args: {
@@ -155,6 +156,7 @@ export const batchUpdateRows = userMutation({
       v.object({
         rowId: v.id("programRows"),
         fields: v.object({
+          // Exercise fields
           libraryExerciseId: v.optional(v.id("exerciseLibrary")),
           weight: v.optional(v.string()),
           reps: v.optional(v.string()),
@@ -162,6 +164,8 @@ export const batchUpdateRows = userMutation({
           effort: v.optional(v.string()),
           rest: v.optional(v.string()),
           notes: v.optional(v.string()),
+          // Circuit header fields
+          name: v.optional(v.string()),
         }),
       }),
     ),
@@ -173,20 +177,63 @@ export const batchUpdateRows = userMutation({
     // See: https://docs.convex.dev/database/writing-data#bulk-inserts-or-updates
     for (const update of args.updates) {
       const { row } = await verifyRowOwnership(ctx, update.rowId, ctx.userId);
-      if (row.kind !== "exercise") continue;
 
-      // Validate libraryExerciseId if being updated
-      if (update.fields.libraryExerciseId !== undefined) {
-        const exercise = await ctx.db.get(update.fields.libraryExerciseId);
-        if (!exercise) {
-          throw new Error("Exercise not found in library");
+      if (row.kind === "exercise") {
+        // Validate libraryExerciseId if being updated
+        if (update.fields.libraryExerciseId !== undefined) {
+          const exercise = await ctx.db.get(update.fields.libraryExerciseId);
+          if (!exercise) {
+            throw new Error("Exercise not found in library");
+          }
+          if (exercise.userId !== undefined && exercise.userId !== ctx.userId) {
+            throw new Error("Not authorized to use this exercise");
+          }
         }
-        if (exercise.userId !== undefined && exercise.userId !== ctx.userId) {
-          throw new Error("Not authorized to use this exercise");
+
+        // Only apply exercise-relevant fields
+        const exercisePatch: Record<string, unknown> = {};
+        if (update.fields.libraryExerciseId !== undefined) {
+          exercisePatch.libraryExerciseId = update.fields.libraryExerciseId;
+        }
+        if (update.fields.weight !== undefined) {
+          exercisePatch.weight = update.fields.weight;
+        }
+        if (update.fields.reps !== undefined) {
+          exercisePatch.reps = update.fields.reps;
+        }
+        if (update.fields.sets !== undefined) {
+          exercisePatch.sets = update.fields.sets;
+        }
+        if (update.fields.effort !== undefined) {
+          exercisePatch.effort = update.fields.effort;
+        }
+        if (update.fields.rest !== undefined) {
+          exercisePatch.rest = update.fields.rest;
+        }
+        if (update.fields.notes !== undefined) {
+          exercisePatch.notes = update.fields.notes;
+        }
+
+        if (Object.keys(exercisePatch).length > 0) {
+          await ctx.db.patch(update.rowId, exercisePatch);
+        }
+      } else if (row.kind === "circuitHeader") {
+        // Only apply circuitHeader-relevant fields
+        const headerPatch: Record<string, unknown> = {};
+        if (update.fields.name !== undefined) {
+          headerPatch.name = update.fields.name;
+        }
+        if (update.fields.sets !== undefined) {
+          headerPatch.sets = update.fields.sets;
+        }
+        if (update.fields.notes !== undefined) {
+          headerPatch.notes = update.fields.notes;
+        }
+
+        if (Object.keys(headerPatch).length > 0) {
+          await ctx.db.patch(update.rowId, headerPatch);
         }
       }
-
-      await ctx.db.patch(update.rowId, update.fields);
     }
     return null;
   },
@@ -276,6 +323,9 @@ export const updateCircuitHeader = userMutation({
     }
     if (args.updates.sets !== undefined) {
       patch.sets = args.updates.sets === null ? undefined : args.updates.sets;
+    }
+    if (args.updates.notes !== undefined) {
+      patch.notes = args.updates.notes === null ? undefined : args.updates.notes;
     }
 
     if (Object.keys(patch).length > 0) {
@@ -640,6 +690,9 @@ export const internalUpdateCircuitHeader = internalMutation({
     }
     if (args.updates.sets !== undefined) {
       patch.sets = args.updates.sets === null ? undefined : args.updates.sets;
+    }
+    if (args.updates.notes !== undefined) {
+      patch.notes = args.updates.notes === null ? undefined : args.updates.notes;
     }
 
     if (Object.keys(patch).length > 0) {

@@ -146,9 +146,47 @@ Refactored to config-driven approach using TanStack Table's column meta for bett
 - [x] Circuit header: disable editing on weight/reps/effort columns (readOnly function)
 - [x] Circuit exercise: disable editing on sets column (readOnly function)
 
+### Completed (Phase 3 implementation)
+- [x] Added `notes` field to circuitHeader schema
+- [x] Added `notes` to `circuitHeaderFieldUpdates` validator
+- [x] Extended `batchUpdateRows` to handle both exercise and circuitHeader row types
+- [x] Added `readOnly` to rest column for circuit headers
+- [x] Updated `CircuitHeaderRowData` type with notes field
+- [x] Updated notes column to use `accessorKey: 'notes'` (works for both row types)
+- [x] Updated `batchUpdateRows` optimistic update to handle both row types
+- [x] Updated `getProgram` and `internalGetProgram` return types and handlers to include notes
+- [x] Added `fieldId` to `CellOpts` for polymorphic field mapping
+- [x] Updated `onDataUpdate` to resolve polymorphic variants and use `fieldId`
+- [x] Circuit header name editing now correctly updates `name` field (via `fieldId: 'name'`)
+
 ### Remaining
-- [ ] `updateCircuitSets` mutation with propagation to all circuit exercises
-- [ ] Wire sets cell on header to propagation mutation
+- [ ] Sets propagation: editing sets on circuit header should propagate to all exercises in the circuit
+  - `handleDataChange` has the logic but it's not triggering (needs investigation)
+  - The optimistic update also needs to propagate sets to circuit exercises
+
+### Implementation Notes
+- No dedicated `updateCircuitSets` mutation needed - sets propagation will be handled in frontend
+- All updates go through `batchUpdateRows` which handles both row types
+- Optimistic updates apply fields conditionally based on row kind
+
+### Bug Fix: Polymorphic Cell Field Mapping
+- Issue: Editing circuit header name was updating `libraryExerciseId` instead of `name`
+- Root cause: `onDataUpdate` used `columnId` as the field to update, but polymorphic cells may need different fields per row type
+- Solution: Added `fieldId` option to `CellOpts` - allows polymorphic variants to specify which field to update
+- Data grid's `onDataUpdate` now resolves polymorphic variants and uses `fieldId` (falling back to `columnId`)
+
+### Files Modified
+- convex/schema.ts (added notes to circuitHeader)
+- convex/helpers/validators.ts (added notes to circuitHeaderFieldUpdates)
+- convex/programRows.ts (extended batchUpdateRows for both row types)
+- convex/programs.ts (updated getProgram + internalGetProgram for notes)
+- src/features/programstudio/program-grid.tsx (type, accessor, readOnly, optimistic update, fieldId)
+- src/components/data-grid/types/data-grid.ts (added fieldId to BaseCellOpts)
+- src/components/data-grid/hooks/use-data-grid.ts (onDataUpdate resolves fieldId for polymorphic cells)
+
+### Follow-up TODOs
+- Memoization check in `DataGridCell`: May need to check `row.original[fieldId]` in addition to `columnId`
+- Paste operations: Verify paste into polymorphic cells with different `fieldId` values works correctly
 
 ## Phase 4: Add Row UX - NOT STARTED
 

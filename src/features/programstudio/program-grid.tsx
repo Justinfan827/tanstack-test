@@ -37,6 +37,7 @@ export type CircuitHeaderRowData = {
   groupId: string
   name: string
   sets: string
+  notes: string
 }
 
 // Union type for all grid rows
@@ -91,6 +92,7 @@ export function ProgramGrid({ programId }: { programId: Id<'programs'> }) {
             groupId: row.groupId,
             name: row.name,
             sets: row.sets ?? '',
+            notes: row.notes ?? '',
           } satisfies CircuitHeaderRowData
         }
       })
@@ -123,7 +125,7 @@ export function ProgramGrid({ programId }: { programId: Id<'programs'> }) {
             variant: 'polymorphic',
             variants: {
               exercise: { variant: 'combobox', options },
-              circuitHeader: { variant: 'short-text' },
+              circuitHeader: { variant: 'short-text', fieldId: 'name' },
             },
           },
         },
@@ -168,6 +170,28 @@ export function ProgramGrid({ programId }: { programId: Id<'programs'> }) {
               const r = row as GridRow
               return r.kind === 'exercise' && r.groupId != null
             },
+            // Propagate sets changes from circuit header to all exercises in circuit
+            onDataUpdate: (update, rowData, table) => {
+              const row = rowData as GridRow
+              // Only propagate when editing a circuit header
+              if (row.kind !== 'circuitHeader') return [update]
+
+              // Find all exercise rows in this circuit and propagate the sets value
+              const propagatedUpdates = table
+                .getRowModel()
+                .rows.map((r, idx) => ({ row: r.original as GridRow, idx }))
+                .filter(
+                  ({ row: r }) =>
+                    r.kind === 'exercise' && r.groupId === row.groupId,
+                )
+                .map(({ idx }) => ({
+                  rowIndex: idx,
+                  columnId: 'sets',
+                  value: update.value,
+                }))
+
+              return [update, ...propagatedUpdates]
+            },
           },
         },
         enableResizing: false,
@@ -192,13 +216,15 @@ export function ProgramGrid({ programId }: { programId: Id<'programs'> }) {
         meta: {
           cell: {
             variant: 'short-text',
+            readOnly: (row: unknown) =>
+              (row as GridRow).kind === 'circuitHeader',
           },
         },
         enableResizing: false,
       },
       {
         id: 'notes',
-        accessorFn: (row) => (row.kind === 'exercise' ? row.notes : ''),
+        accessorKey: 'notes',
         header: 'Notes',
         meta: {
           cell: {
@@ -353,12 +379,32 @@ function DayGrid({
           rows: day.rows.map((row) => {
             const update = updatesMap.get(row._id)
             if (!update) return row
-            // Merge updates into row (only for exercise rows)
-            if (row.kind !== 'exercise') return row
-            return {
-              ...row,
-              ...update, // Apply weight, reps, sets, notes updates
+
+            if (row.kind === 'exercise') {
+              // Apply exercise-relevant fields only
+              return {
+                ...row,
+                ...(update.libraryExerciseId !== undefined && {
+                  libraryExerciseId: update.libraryExerciseId,
+                }),
+                ...(update.weight !== undefined && { weight: update.weight }),
+                ...(update.reps !== undefined && { reps: update.reps }),
+                ...(update.sets !== undefined && { sets: update.sets }),
+                ...(update.effort !== undefined && { effort: update.effort }),
+                ...(update.rest !== undefined && { rest: update.rest }),
+                ...(update.notes !== undefined && { notes: update.notes }),
+              }
+            } else if (row.kind === 'circuitHeader') {
+              // Apply circuitHeader-relevant fields only
+              return {
+                ...row,
+                ...(update.name !== undefined && { name: update.name }),
+                ...(update.sets !== undefined && { sets: update.sets }),
+                ...(update.notes !== undefined && { notes: update.notes }),
+              }
             }
+
+            return row
           }),
         }
       }),
@@ -447,12 +493,22 @@ function DayGrid({
           newRow.kind === 'circuitHeader' &&
           oldRow.kind === 'circuitHeader'
         ) {
-          const fields: { name?: string; sets?: string } = {}
+          const fields: { name?: string; sets?: string; notes?: string } = {}
           if (newRow.name !== oldRow.name) {
             fields.name = newRow.name
           }
+          if (newRow.notes !== oldRow.notes) {
+            fields.notes = newRow.notes
+          }
           if (newRow.sets !== oldRow.sets) {
             fields.sets = newRow.sets
+
+            // Propagate sets change to all exercises in this circuit
+            for (const row of newData) {
+              if (row.kind === 'exercise' && row.groupId === newRow.groupId) {
+                updates.push({ rowId: row._id, fields: { sets: newRow.sets } })
+              }
+            }
           }
 
           if (Object.keys(fields).length > 0) {
@@ -464,7 +520,6 @@ function DayGrid({
       // Batch all updates in a single mutation call
       // Optimistic update will immediately update UI via localStore.setQuery
       if (updates.length > 0) {
-        console.log('batching updates', JSON.stringify(updates, null, 2))
         batchUpdateRows({ updates })
       }
 

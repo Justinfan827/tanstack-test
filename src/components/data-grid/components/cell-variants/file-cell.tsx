@@ -160,6 +160,24 @@ export function FileCell<TData>({
     [maxFileSize, acceptedTypes],
   )
 
+  const fireUpdate = React.useCallback(
+    (val: unknown) => {
+      const update = { rowIndex, columnId, value: val }
+      if (cellOpts?.onDataUpdate) {
+        const updates = cellOpts.onDataUpdate(
+          update,
+          cell.row.original,
+          cell.getContext()
+            .table as unknown as import('@tanstack/react-table').Table<unknown>,
+        )
+        if (updates.length) tableMeta?.onDataUpdate?.(updates)
+      } else {
+        tableMeta?.onDataUpdate?.(update)
+      }
+    },
+    [tableMeta, rowIndex, columnId, cellOpts, cell],
+  )
+
   const addFiles = React.useCallback(
     async (newFiles: File[], skipUpload = false) => {
       if (readOnly || isPending) return
@@ -268,7 +286,7 @@ export function FileCell<TData>({
 
           setFiles(finalFiles)
           setUploadingFiles(new Set())
-          tableMeta?.onDataUpdate?.({ rowIndex, columnId, value: finalFiles })
+          fireUpdate(finalFiles)
         } else {
           const newFilesData: FileCellData[] = filesToValidate.map((f) => ({
             id: crypto.randomUUID(),
@@ -279,24 +297,11 @@ export function FileCell<TData>({
           }))
           const updatedFiles = [...files, ...newFilesData]
           setFiles(updatedFiles)
-          tableMeta?.onDataUpdate?.({
-            rowIndex,
-            columnId,
-            value: updatedFiles,
-          })
+          fireUpdate(updatedFiles)
         }
       }
     },
-    [
-      files,
-      maxFiles,
-      validateFile,
-      tableMeta,
-      rowIndex,
-      columnId,
-      readOnly,
-      isPending,
-    ],
+    [files, maxFiles, validateFile, tableMeta, readOnly, isPending, fireUpdate],
   )
 
   const removeFile = React.useCallback(
@@ -342,9 +347,9 @@ export function FileCell<TData>({
         next.delete(fileId)
         return next
       })
-      tableMeta?.onDataUpdate?.({ rowIndex, columnId, value: updatedFiles })
+      fireUpdate(updatedFiles)
     },
-    [files, tableMeta, rowIndex, columnId, readOnly, isPending],
+    [files, tableMeta, rowIndex, columnId, readOnly, isPending, fireUpdate],
   )
 
   const clearAll = React.useCallback(async () => {
@@ -377,8 +382,8 @@ export function FileCell<TData>({
     }
     setFiles([])
     setDeletingFiles(new Set())
-    tableMeta?.onDataUpdate?.({ rowIndex, columnId, value: [] })
-  }, [files, tableMeta, rowIndex, columnId, readOnly, isPending])
+    fireUpdate([])
+  }, [files, tableMeta, rowIndex, columnId, readOnly, isPending, fireUpdate])
 
   const onCellDragEnter = React.useCallback((event: React.DragEvent) => {
     event.preventDefault()
@@ -540,13 +545,15 @@ export function FileCell<TData>({
       }
     },
     [
-      isEditing,
-      isFocused,
-      cellValue,
+      files,
+      maxFiles,
+      validateFile,
       tableMeta,
-      onDropzoneClick,
       rowIndex,
       columnId,
+      readOnly,
+      isPending,
+      fireUpdate,
     ],
   )
 

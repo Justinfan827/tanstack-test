@@ -15,6 +15,7 @@ export function ShortTextCell<TData>({
   isSearchMatch,
   isActiveSearchMatch,
   readOnly,
+  cellOpts,
 }: DataGridCellProps<TData>) {
   const initialValue = cell.getValue() as string
   const [value, setValue] = React.useState(initialValue)
@@ -30,14 +31,32 @@ export function ShortTextCell<TData>({
     }
   }
 
+  const fireUpdate = React.useCallback(
+    (value: unknown) => {
+      const update = { rowIndex, columnId, value }
+      if (cellOpts?.onDataUpdate) {
+        const updates = cellOpts.onDataUpdate(
+          update,
+          cell.row.original,
+          cell.getContext()
+            .table as unknown as import('@tanstack/react-table').Table<unknown>,
+        )
+        if (updates.length) tableMeta?.onDataUpdate?.(updates)
+      } else {
+        tableMeta?.onDataUpdate?.(update)
+      }
+    },
+    [tableMeta, rowIndex, columnId, cellOpts, cell],
+  )
+
   const onBlur = React.useCallback(() => {
     // Read the current value directly from the DOM to avoid stale state
     const currentValue = cellRef.current?.textContent ?? ''
     if (!readOnly && currentValue !== initialValue) {
-      tableMeta?.onDataUpdate?.({ rowIndex, columnId, value: currentValue })
+      fireUpdate(currentValue)
     }
     tableMeta?.onCellEditingStop?.()
-  }, [tableMeta, rowIndex, columnId, initialValue, readOnly])
+  }, [tableMeta, initialValue, readOnly, fireUpdate])
 
   const onInput = React.useCallback(
     (event: React.FormEvent<HTMLDivElement>) => {
@@ -54,22 +73,14 @@ export function ShortTextCell<TData>({
           event.preventDefault()
           const currentValue = cellRef.current?.textContent ?? ''
           if (currentValue !== initialValue) {
-            tableMeta?.onDataUpdate?.({
-              rowIndex,
-              columnId,
-              value: currentValue,
-            })
+            fireUpdate(currentValue)
           }
           tableMeta?.onCellEditingStop?.({ moveToNextRow: true })
         } else if (event.key === 'Tab') {
           event.preventDefault()
           const currentValue = cellRef.current?.textContent ?? ''
           if (currentValue !== initialValue) {
-            tableMeta?.onDataUpdate?.({
-              rowIndex,
-              columnId,
-              value: currentValue,
-            })
+            fireUpdate(currentValue)
           }
           tableMeta?.onCellEditingStop?.({
             direction: event.shiftKey ? 'left' : 'right',
@@ -101,7 +112,7 @@ export function ShortTextCell<TData>({
         })
       }
     },
-    [isEditing, isFocused, initialValue, tableMeta, rowIndex, columnId],
+    [isEditing, isFocused, initialValue, tableMeta, fireUpdate],
   )
 
   React.useEffect(() => {

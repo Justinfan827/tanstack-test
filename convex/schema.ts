@@ -113,6 +113,7 @@ export default defineSchema({
         groupId: v.string(),
         name: v.string(),
         sets: v.optional(v.string()),
+        notes: v.optional(v.string()),
       }),
     )
   )

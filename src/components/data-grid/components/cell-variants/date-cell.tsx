@@ -26,6 +26,7 @@ export function DateCell<TData>({
   isSearchMatch,
   isActiveSearchMatch,
   readOnly,
+  cellOpts,
 }: DataGridCellProps<TData>) {
   const initialValue = cell.getValue() as string
   const [value, setValue] = React.useState(initialValue ?? '')
@@ -39,16 +40,34 @@ export function DateCell<TData>({
 
   const selectedDate = value ? new Date(value) : undefined
 
+  const fireUpdate = React.useCallback(
+    (val: unknown) => {
+      const update = { rowIndex, columnId, value: val }
+      if (cellOpts?.onDataUpdate) {
+        const updates = cellOpts.onDataUpdate(
+          update,
+          cell.row.original,
+          cell.getContext()
+            .table as unknown as import('@tanstack/react-table').Table<unknown>,
+        )
+        if (updates.length) tableMeta?.onDataUpdate?.(updates)
+      } else {
+        tableMeta?.onDataUpdate?.(update)
+      }
+    },
+    [tableMeta, rowIndex, columnId, cellOpts, cell],
+  )
+
   const onDateSelect = React.useCallback(
     (date: Date | undefined) => {
       if (!date || readOnly) return
 
       const formattedDate = date.toISOString().split('T')[0] ?? ''
       setValue(formattedDate)
-      tableMeta?.onDataUpdate?.({ rowIndex, columnId, value: formattedDate })
+      fireUpdate(formattedDate)
       tableMeta?.onCellEditingStop?.()
     },
-    [tableMeta, rowIndex, columnId, readOnly],
+    [tableMeta, readOnly, fireUpdate],
   )
 
   const onOpenChange = React.useCallback(

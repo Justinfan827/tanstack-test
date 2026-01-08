@@ -1,4 +1,4 @@
-import type { Cell, RowData, TableMeta } from '@tanstack/react-table'
+import type { Cell, RowData, Table, TableMeta } from '@tanstack/react-table'
 
 export type Direction = 'ltr' | 'rtl'
 
@@ -11,6 +11,12 @@ export interface CellSelectOption {
   count?: number
 }
 
+export interface UpdateCell {
+  rowIndex: number
+  columnId: string
+  value: unknown
+}
+
 /**
  * Base options shared by all cell variants.
  * Supports row-aware readOnly via function.
@@ -21,6 +27,24 @@ type BaseCellOpts = {
    * Function receives row.original for row-specific logic.
    */
   readOnly?: boolean | ((row: unknown) => boolean)
+  /**
+   * Override which field to update when this cell changes.
+   * Defaults to the column's id.
+   * Useful for polymorphic cells where different row types need different fields.
+   */
+  fieldId?: string
+  /**
+   * Override the default cell update behavior.
+   * By default, cells call `tableMeta.onDataUpdate` with the single cell update.
+   * If this function is provided, its returned updates are fired INSTEAD of the default.
+   * Return `[update]` to keep default behavior, or `[update, ...others]` to add propagated updates.
+   * Return `[]` to suppress the update entirely.
+   */
+  onDataUpdate?: (
+    update: UpdateCell,
+    rowData: unknown,
+    table: Table<unknown>,
+  ) => UpdateCell[]
 }
 
 export type CellOpts =
@@ -80,12 +104,6 @@ export type CellOpts =
        */
       discriminatorKey?: string
     })
-
-export interface UpdateCell {
-  rowIndex: number
-  columnId: string
-  value: unknown
-}
 
 declare module '@tanstack/react-table' {
   // biome-ignore lint/correctness/noUnusedVariables: TData and TValue are used in the ColumnMeta interface

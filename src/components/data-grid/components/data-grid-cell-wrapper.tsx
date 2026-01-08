@@ -51,10 +51,10 @@ export function DataGridCellWrapper<TData>({
       if (!isEditing) {
         event.preventDefault()
         onClickProp?.(event)
-        if (isFocused && !readOnly) {
-          tableMeta?.onCellEditingStart?.(rowIndex, columnId)
-        } else {
+        if (!isFocused) {
           tableMeta?.onCellClick?.(rowIndex, columnId, event)
+        } else if (!readOnly) {
+          tableMeta?.onCellEditingStart?.(rowIndex, columnId)
         }
       }
     },
@@ -80,12 +80,12 @@ export function DataGridCellWrapper<TData>({
 
   const onDoubleClick = React.useCallback(
     (event: React.MouseEvent) => {
-      if (!isEditing) {
+      if (!isEditing && !readOnly) {
         event.preventDefault()
         tableMeta?.onCellDoubleClick?.(rowIndex, columnId)
       }
     },
-    [tableMeta, rowIndex, columnId, isEditing],
+    [tableMeta, rowIndex, columnId, isEditing, readOnly],
   )
 
   const onKeyDown = React.useCallback(

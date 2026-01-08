@@ -375,6 +375,7 @@ export const getProgram = userQuery({
                 groupId: v.string(),
                 name: v.string(),
                 sets: v.optional(v.string()),
+                notes: v.optional(v.string()),
               })
             )
           ),
@@ -438,6 +439,7 @@ export const getProgram = userQuery({
               groupId: row.groupId,
               name: row.name,
               sets: row.sets,
+              notes: row.notes,
             };
           }
         }),
@@ -456,6 +458,9 @@ export const getProgram = userQuery({
 // =============================================================================
 // Internal mutations/queries for agent tools (accept userId as parameter)
 // =============================================================================
+
+// NOTE: When updating circuitHeader row structure in getProgram above,
+// also update internalGetProgram below to match.
 
 /**
  * Internal: Create a new program (for agent tools).
@@ -568,6 +573,7 @@ export const internalGetProgram = internalQuery({
                 groupId: v.string(),
                 name: v.string(),
                 sets: v.optional(v.string()),
+                notes: v.optional(v.string()),
               })
             )
           ),
@@ -628,6 +634,7 @@ export const internalGetProgram = internalQuery({
               groupId: row.groupId,
               name: row.name,
               sets: row.sets,
+              notes: row.notes,
             };
           }
         }),

@@ -62,6 +62,24 @@ export function MultiSelectCell<TData>({
     setSearchValue('')
   }
 
+  const fireUpdate = React.useCallback(
+    (val: unknown) => {
+      const update = { rowIndex, columnId, value: val }
+      if (cellOpts?.onDataUpdate) {
+        const updates = cellOpts.onDataUpdate(
+          update,
+          cell.row.original,
+          cell.getContext()
+            .table as unknown as import('@tanstack/react-table').Table<unknown>,
+        )
+        if (updates.length) tableMeta?.onDataUpdate?.(updates)
+      } else {
+        tableMeta?.onDataUpdate?.(update)
+      }
+    },
+    [tableMeta, rowIndex, columnId, cellOpts, cell],
+  )
+
   const onValueChange = React.useCallback(
     (value: string) => {
       if (readOnly) return
@@ -70,11 +88,11 @@ export function MultiSelectCell<TData>({
         : [...selectedValues, value]
 
       setSelectedValues(newValues)
-      tableMeta?.onDataUpdate?.({ rowIndex, columnId, value: newValues })
+      fireUpdate(newValues)
       setSearchValue('')
       queueMicrotask(() => inputRef.current?.focus())
     },
-    [selectedValues, tableMeta, rowIndex, columnId, readOnly],
+    [selectedValues, readOnly, fireUpdate],
   )
 
   const removeValue = React.useCallback(
@@ -84,19 +102,19 @@ export function MultiSelectCell<TData>({
       event?.preventDefault()
       const newValues = selectedValues.filter((v) => v !== valueToRemove)
       setSelectedValues(newValues)
-      tableMeta?.onDataUpdate?.({ rowIndex, columnId, value: newValues })
+      fireUpdate(newValues)
       // Focus back on input after removing
       setTimeout(() => inputRef.current?.focus(), 0)
     },
-    [selectedValues, tableMeta, rowIndex, columnId, readOnly],
+    [selectedValues, readOnly, fireUpdate],
   )
 
   const clearAll = React.useCallback(() => {
     if (readOnly) return
     setSelectedValues([])
-    tableMeta?.onDataUpdate?.({ rowIndex, columnId, value: [] })
+    fireUpdate([])
     queueMicrotask(() => inputRef.current?.focus())
-  }, [tableMeta, rowIndex, columnId, readOnly])
+  }, [readOnly, fireUpdate])
 
   const onOpenChange = React.useCallback(
     (open: boolean) => {

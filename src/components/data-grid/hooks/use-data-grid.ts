@@ -335,19 +335,40 @@ function useDataGrid<TData>({
 
       const currentTable = tableRef.current
       const currentData = propsRef.current.data
-      console.log('onDataUpdate called', updates, currentData)
       const rows = currentTable?.getRowModel().rows
+
+      // Build column lookup for resolving fieldId
+      const tableColumns = currentTable?.getAllColumns() ?? []
+      const columnMap = new Map(tableColumns.map((c) => [c.id, c]))
+
+      // Helper to resolve fieldId from cellOpts, handling polymorphic variants
+      const resolveFieldId = (columnId: string, rowData: unknown): string => {
+        const column = columnMap.get(columnId)
+        let cellOpts = column?.columnDef?.meta?.cell
+
+        // Resolve polymorphic variant if needed
+        if (cellOpts?.variant === 'polymorphic' && rowData) {
+          const key = cellOpts.discriminatorKey ?? 'kind'
+          const discriminator = (rowData as Record<string, unknown>)[
+            key
+          ] as string
+          cellOpts = cellOpts.variants[discriminator]
+        }
+
+        return cellOpts?.fieldId ?? columnId
+      }
 
       const rowUpdatesMap = new Map<
         number,
-        Array<Omit<UpdateCell, 'rowIndex'>>
+        Array<{ fieldId: string; value: unknown }>
       >()
 
       for (const update of updateArray) {
         if (!rows || !currentTable) {
+          // No table context, fall back to columnId
           const existingUpdates = rowUpdatesMap.get(update.rowIndex) ?? []
           existingUpdates.push({
-            columnId: update.columnId,
+            fieldId: update.columnId,
             value: update.value,
           })
           rowUpdatesMap.set(update.rowIndex, existingUpdates)
@@ -361,9 +382,12 @@ function useDataGrid<TData>({
           const targetIndex =
             originalRowIndex !== -1 ? originalRowIndex : update.rowIndex
 
+          // Resolve fieldId using row data for polymorphic support
+          const fieldId = resolveFieldId(update.columnId, originalData)
+
           const existingUpdates = rowUpdatesMap.get(targetIndex) ?? []
           existingUpdates.push({
-            columnId: update.columnId,
+            fieldId,
             value: update.value,
           })
           rowUpdatesMap.set(targetIndex, existingUpdates)
@@ -381,8 +405,8 @@ function useDataGrid<TData>({
         if (updates) {
           const baseRow = existingRow ?? tableRow?.original ?? ({} as TData)
           const updatedRow = { ...baseRow } as Record<string, unknown>
-          for (const { columnId, value } of updates) {
-            updatedRow[columnId] = value
+          for (const { fieldId, value } of updates) {
+            updatedRow[fieldId] = value
           }
           newData[i] = updatedRow as TData
         } else {

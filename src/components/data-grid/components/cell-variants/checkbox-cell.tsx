@@ -15,6 +15,7 @@ export function CheckboxCell<TData>({
   isSearchMatch,
   isActiveSearchMatch,
   readOnly,
+  cellOpts,
 }: Omit<DataGridCellProps<TData>, 'isEditing'>) {
   const initialValue = cell.getValue() as boolean
   const [value, setValue] = React.useState(Boolean(initialValue))
@@ -26,13 +27,31 @@ export function CheckboxCell<TData>({
     setValue(Boolean(initialValue))
   }
 
+  const fireUpdate = React.useCallback(
+    (val: unknown) => {
+      const update = { rowIndex, columnId, value: val }
+      if (cellOpts?.onDataUpdate) {
+        const updates = cellOpts.onDataUpdate(
+          update,
+          cell.row.original,
+          cell.getContext()
+            .table as unknown as import('@tanstack/react-table').Table<unknown>,
+        )
+        if (updates.length) tableMeta?.onDataUpdate?.(updates)
+      } else {
+        tableMeta?.onDataUpdate?.(update)
+      }
+    },
+    [tableMeta, rowIndex, columnId, cellOpts, cell],
+  )
+
   const onCheckedChange = React.useCallback(
     (checked: boolean) => {
       if (readOnly) return
       setValue(checked)
-      tableMeta?.onDataUpdate?.({ rowIndex, columnId, value: checked })
+      fireUpdate(checked)
     },
-    [tableMeta, rowIndex, columnId, readOnly],
+    [readOnly, fireUpdate],
   )
 
   const onWrapperKeyDown = React.useCallback(
